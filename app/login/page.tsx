@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 function getRoleLabel(role: string | null) {
@@ -13,6 +15,7 @@ function getRoleLabel(role: string | null) {
 
 export default function LoginPage() {
   const [role, setRole] = useState<string | null>(null);
+  const [roleLabel, setRoleLabel] = useState("Plateforme");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -20,10 +23,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setRole(params.get("role"));
+    const currentRole = params.get("role");
+    setRole(currentRole);
+    setRoleLabel(getRoleLabel(currentRole));
   }, []);
-
-  const roleLabel = useMemo(() => getRoleLabel(role), [role]);
 
   async function handleLogin() {
     setLoading(true);
