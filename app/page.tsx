@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckCircle2,
   GraduationCap,
-  Lock,
   Search,
   ShieldCheck,
   User,
@@ -34,10 +33,6 @@ const ROLE_COLORS: Record<Role, string> = {
 };
 
 export default function Home() {
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginMessage, setLoginMessage] = useState("");
-
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupLevel, setSignupLevel] = useState("D2");
@@ -118,28 +113,10 @@ export default function Home() {
   }
 
   function handleQuickRole(role: Role) {
-    if (role === "Admin") {
-      setLoginMessage("L’interface Admin arrive à l’étape suivante.");
-      return;
-    }
-    if (role === "BR") {
-      setLoginMessage("L’interface BR arrive à l’étape suivante.");
-      return;
-    }
-    if (role === "Examinateur") {
-      setLoginMessage("L’interface Examinateur arrive à l’étape suivante.");
-      return;
-    }
-    if (role === "Étudiant") {
-      setLoginMessage("L’interface Étudiant arrive à l’étape suivante.");
-      return;
-    }
-  }
-
-  function handleLogin() {
-    setLoginMessage(
-      "La connexion sécurisée Supabase Auth sera branchée juste après. Pour l’instant, on branche les vraies données."
-    );
+    if (role === "Admin") window.location.href = "/login?role=admin";
+    if (role === "BR") window.location.href = "/login?role=br";
+    if (role === "Examinateur") window.location.href = "/login?role=examinateur";
+    if (role === "Étudiant") window.location.href = "/login?role=etudiant";
   }
 
   return (
@@ -158,43 +135,12 @@ export default function Home() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#7c9c56]">
                 <User className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-4xl font-medium text-[#2f2f2f]">Connexion</h2>
+              <h2 className="text-4xl font-medium text-[#2f2f2f]">Accès plateforme</h2>
             </div>
 
-            <div className="mt-8 space-y-4">
-              <Field
-                icon={<User className="h-5 w-5 text-[#9aa18f]" />}
-                placeholder="Identifiant"
-                type="text"
-                value={loginUsername}
-                onChange={setLoginUsername}
-              />
-              <Field
-                icon={<Lock className="h-5 w-5 text-[#9aa18f]" />}
-                placeholder="Mot de passe"
-                type="password"
-                value={loginPassword}
-                onChange={setLoginPassword}
-              />
-            </div>
-
-            {loginMessage ? (
-              <p className="mt-4 text-sm font-medium text-[#5c8945]">{loginMessage}</p>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={handleLogin}
-              className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-2xl font-semibold text-white transition hover:opacity-95"
-            >
-              Se connecter
-            </button>
-
-            <div className="mt-8 flex items-center gap-4 text-[#9b978f]">
-              <div className="h-px flex-1 bg-[#d7d0c5]" />
-              <span className="text-lg">Accès rapide</span>
-              <div className="h-px flex-1 bg-[#d7d0c5]" />
-            </div>
+            <p className="mt-6 text-sm text-[#666]">
+              Clique sur ton profil pour accéder à la page de connexion correspondante.
+            </p>
 
             <div className="mt-7 grid grid-cols-4 gap-4">
               {(["Admin", "BR", "Examinateur", "Étudiant"] as Role[]).map((role) => {
