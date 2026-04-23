@@ -10,7 +10,13 @@ export type AppProfile = {
   role: "admin" | "br" | "examiner" | "student";
   level?: string | null;
   program?: string | null;
-  is_active?: boolean;
+  is_active?: boolean | null;
+  photo_url?: string | null;
+  phone?: string | null;
+  student_number?: string | null;
+  year_label?: string | null;
+  examiner_category?: string | null;
+  examiner_grade?: string | null;
 };
 
 export function useUser() {
