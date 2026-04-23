@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 function getRoleLabel(role: string | null) {
@@ -13,15 +12,18 @@ function getRoleLabel(role: string | null) {
 }
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const role = searchParams.get("role");
-
-  const roleLabel = useMemo(() => getRoleLabel(role), [role]);
-
+  const [role, setRole] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRole(params.get("role"));
+  }, []);
+
+  const roleLabel = useMemo(() => getRoleLabel(role), [role]);
 
   async function handleLogin() {
     setLoading(true);
