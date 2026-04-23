@@ -58,6 +58,13 @@ type FormCriterion = {
   sort_order: number;
 };
 
+type AttendanceRow = {
+  id: string;
+  session_id: string;
+  student_profile_id: string;
+  status: "present" | "absent" | "late" | "excused";
+};
+
 export default function EtudiantPage() {
   const { user, profile, loading } = useUser();
 
@@ -72,54 +79,101 @@ export default function EtudiantPage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
 
+  const [attendanceStats, setAttendanceStats] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0,
+  });
+
   useEffect(() => {
     if (!loading && !user) {
       window.location.href = "/login?role=etudiant";
       return;
     }
+
     if (!loading && user && profile?.role !== "student") {
       window.location.href = "/";
       return;
     }
+
     if (user && profile?.role === "student") {
       loadDashboard();
     }
   }, [user, profile, loading]);
 
   async function loadDashboard() {
+    if (!user) return;
+
     setPageLoading(true);
 
-    const [rotationsRes, sessionsRes, resultsRes, notificationsRes] = await Promise.all([
+    const [
+      rotationsRes,
+      sessionsRes,
+      resultsRes,
+      notificationsRes,
+      attendanceRes,
+    ] = await Promise.all([
       supabase
         .from("room_rotations")
         .select("*")
         .eq("student_profile_id", user.id)
         .order("scheduled_at", { ascending: true }),
-      supabase.from("sessions").select("id, title, starts_at, location"),
+
+      supabase
+        .from("sessions")
+        .select("id, title, starts_at, location")
+        .order("starts_at", { ascending: true }),
+
       supabase
         .from("evaluation_results")
         .select("id, global_score, evaluated_at")
         .eq("student_profile_id", user.id)
         .eq("status", "published")
         .order("evaluated_at", { ascending: false }),
+
       supabase
         .from("notifications")
         .select("id")
         .eq("profile_id", user.id)
         .eq("is_read", false),
+
+      supabase
+        .from("session_attendance")
+        .select("*")
+        .eq("student_profile_id", user.id),
     ]);
 
-    if (!rotationsRes.error) setRotations((rotationsRes.data as RotationItem[]) || []);
-    if (!sessionsRes.error) setSessions((sessionsRes.data as SessionItem[]) || []);
+    if (!rotationsRes.error) {
+      setRotations((rotationsRes.data as RotationItem[]) || []);
+    }
+
+    if (!sessionsRes.error) {
+      setSessions((sessionsRes.data as SessionItem[]) || []);
+    }
+
     if (!resultsRes.error) {
-      const loaded = (resultsRes.data as ResultItem[]) || [];
-      setResults(loaded);
-      if (loaded[0]) {
-        loadResultDetails(loaded[0].id);
+      const loadedResults = (resultsRes.data as ResultItem[]) || [];
+      setResults(loadedResults);
+
+      if (loadedResults[0]) {
+        await loadResultDetails(loadedResults[0].id);
       }
     }
+
     if (!notificationsRes.error) {
       setNotificationsCount(notificationsRes.data?.length || 0);
+    }
+
+    if (!attendanceRes.error) {
+      const rows = (attendanceRes.data as AttendanceRow[]) || [];
+
+      setAttendanceStats({
+        present: rows.filter((r) => r.status === "present").length,
+        absent: rows.filter((r) => r.status === "absent").length,
+        late: rows.filter((r) => r.status === "late").length,
+        excused: rows.filter((r) => r.status === "excused").length,
+      });
     }
 
     setPageLoading(false);
@@ -142,7 +196,8 @@ export default function EtudiantPage() {
     const loadedDetails = (detailsRes.data as ResultDetailItem[]) || [];
     setDetails(loadedDetails);
 
-    const ids = loadedDetails.map((d) => d.form_item_id);
+    const ids = loadedDetails.map((d) => d.form_item_id).filter(Boolean);
+
     if (ids.length === 0) {
       setCriteria([]);
       return;
@@ -204,17 +259,24 @@ export default function EtudiantPage() {
   }
 
   const nextSessions = useMemo(() => {
-    return rotations.slice(0, 3).map((r) => {
-      const session = sessions.find((s) => s.id === r.session_id);
+    return rotations.slice(0, 3).map((rotation) => {
+      const session = sessions.find((s) => s.id === rotation.session_id);
+
       return {
-        ...r,
+        ...rotation,
         title: session?.title || "Session",
+        location: session?.location || "",
       };
     });
   }, [rotations, sessions]);
 
-  if (loading || pageLoading) return <main className="p-10">Chargement...</main>;
-  if (!user || !profile || profile.role !== "student") return <main className="p-10">Redirection...</main>;
+  if (loading || pageLoading) {
+    return <main className="p-10">Chargement...</main>;
+  }
+
+  if (!user || !profile || profile.role !== "student") {
+    return <main className="p-10">Redirection...</main>;
+  }
 
   return (
     <DashboardShell
@@ -234,13 +296,32 @@ export default function EtudiantPage() {
         { label: "Profil", href: "/etudiant", icon: UserCircle2 },
       ]}
     >
-      <DashboardTitle title="Tableau de bord" color="#d88088" />
+      <DashboardTitle
+        title="Tableau de bord étudiant"
+        subtitle="Suivi de tes sessions, présences, évaluations et fiches récapitulatives"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Inscriptions" value={String(rotations.length)} subtitle="Actives" color="#d88088" />
-        <StatCard title="Évaluations" value={String(results.length)} subtitle="Reçues" color="#d88088" />
-        <StatCard title="Notifications" value={String(notificationsCount)} subtitle="Non lues" color="#d88088" />
-        <StatCard title="Sessions" value={String(nextSessions.length)} subtitle="À venir" color="#d88088" />
+        <StatCard
+          title="Présences"
+          value={String(attendanceStats.present)}
+          subtitle="Sessions réalisées"
+        />
+        <StatCard
+          title="Absences"
+          value={String(attendanceStats.absent)}
+          subtitle="À surveiller"
+        />
+        <StatCard
+          title="Retards"
+          value={String(attendanceStats.late)}
+          subtitle="Signalés"
+        />
+        <StatCard
+          title="Évaluations"
+          value={String(results.length)}
+          subtitle="Fiches publiées"
+        />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
@@ -261,39 +342,69 @@ export default function EtudiantPage() {
             </div>
 
             <div>
-              <p className="text-lg font-semibold text-[#3f3732]">{profile.full_name}</p>
+              <p className="text-lg font-semibold text-[#2c2f4a]">
+                {profile.full_name || "Profil à compléter"}
+              </p>
               <p className="text-sm text-[#8d8278]">{profile.email}</p>
               <p className="mt-1 text-sm text-[#8d8278]">
-                {profile.level || "Niveau à compléter"} · {profile.program || "Programme à compléter"}
+                {profile.level || "Niveau à compléter"} ·{" "}
+                {profile.program || "Programme à compléter"}
               </p>
+              {profile.student_number ? (
+                <p className="mt-1 text-sm text-[#8d8278]">
+                  ID étudiant : {profile.student_number}
+                </p>
+              ) : null}
             </div>
 
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-medium text-[#7d7369] shadow-sm">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-medium text-[#2c2f4a] shadow-sm">
               <Upload className="h-4 w-4" />
               {photoUploading ? "Envoi..." : "Ajouter / changer ma photo"}
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
             </label>
 
-            {photoMessage ? <p className="text-sm text-[#8b8177]">{photoMessage}</p> : null}
+            {photoMessage ? (
+              <p className="text-sm text-[#8b8177]">{photoMessage}</p>
+            ) : null}
           </div>
         </Panel>
 
         <Panel title="Mes prochaines sessions">
           <div className="space-y-3">
             {nextSessions.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucune session à venir.</p>
+              <p className="text-sm text-[#8d8278]">
+                Aucune session à venir.
+              </p>
             ) : (
-              nextSessions.map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4">
+              nextSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4"
+                >
                   <div>
-                    <p className="font-semibold text-[#3f3732]">{s.title}</p>
-                    <p className="text-sm text-[#8d8278]">
-                      {new Date(s.scheduled_at).toLocaleString("fr-FR")}
+                    <p className="font-semibold text-[#2c2f4a]">
+                      {session.title}
                     </p>
-                    <p className="text-sm text-[#8d8278]">Ordre de passage : {s.order_index}</p>
+                    <p className="text-sm text-[#8d8278]">
+                      {new Date(session.scheduled_at).toLocaleString("fr-FR")}
+                    </p>
+                    {session.location ? (
+                      <p className="text-sm text-[#8d8278]">
+                        {session.location}
+                      </p>
+                    ) : null}
+                    <p className="text-sm text-[#8d8278]">
+                      Ordre de passage : {session.order_index}
+                    </p>
                   </div>
+
                   <span className="rounded-full bg-[#f8dce0] px-3 py-1 text-xs font-semibold text-[#d88088]">
-                    Détails
+                    À venir
                   </span>
                 </div>
               ))
@@ -306,26 +417,31 @@ export default function EtudiantPage() {
         <Panel title="Mes évaluations">
           <div className="space-y-3">
             {results.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucun résultat publié pour le moment.</p>
+              <p className="text-sm text-[#8d8278]">
+                Aucun résultat publié pour le moment.
+              </p>
             ) : (
-              results.map((r) => (
+              results.map((result) => (
                 <button
-                  key={r.id}
+                  key={result.id}
                   type="button"
-                  onClick={() => loadResultDetails(r.id)}
+                  onClick={() => loadResultDetails(result.id)}
                   className={`w-full rounded-2xl p-4 text-left ${
-                    selectedResultId === r.id ? "bg-[#f8dce0]" : "bg-white"
+                    selectedResultId === result.id ? "bg-[#f8dce0]" : "bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-[#3f3732]">
-                        {new Date(r.evaluated_at).toLocaleDateString("fr-FR")}
+                      <p className="font-semibold text-[#2c2f4a]">
+                        {new Date(result.evaluated_at).toLocaleDateString(
+                          "fr-FR"
+                        )}
                       </p>
                       <p className="text-sm text-[#8d8278]">Fiche publiée</p>
                     </div>
+
                     <span className="text-lg font-bold text-[#d88088]">
-                      {r.global_score ?? "--"}/20
+                      {result.global_score ?? "--"}/20
                     </span>
                   </div>
                 </button>
@@ -336,26 +452,43 @@ export default function EtudiantPage() {
 
         <Panel title="Fiche récapitulative">
           {details.length === 0 ? (
-            <p className="text-sm text-[#8d8278]">Sélectionne une évaluation pour voir le détail.</p>
+            <p className="text-sm text-[#8d8278]">
+              Sélectionne une évaluation pour voir le détail.
+            </p>
           ) : (
             <div className="space-y-3">
               {criteria.map((criterion) => {
-                const detail = details.find((d) => d.form_item_id === criterion.id);
+                const detail = details.find(
+                  (d) => d.form_item_id === criterion.id
+                );
+
                 return (
                   <div key={criterion.id} className="rounded-2xl bg-white p-4">
-                    <p className="font-semibold text-[#3f3732]">{criterion.label}</p>
-                    <p className="mt-1 text-xs text-[#998e84]">
-                      {criterion.item_type} {criterion.max_score !== null ? `· ${criterion.max_score} pt max` : ""}
+                    <p className="font-semibold text-[#2c2f4a]">
+                      {criterion.label}
                     </p>
+
+                    <p className="mt-1 text-xs text-[#998e84]">
+                      {criterion.item_type}
+                      {criterion.max_score !== null
+                        ? ` · ${criterion.max_score} pt max`
+                        : ""}
+                    </p>
+
                     <div className="mt-3 text-sm text-[#6e655d]">
                       {criterion.item_type === "checkbox" ? (
                         <p>Validation : {detail?.checked ? "Oui" : "Non"}</p>
                       ) : null}
+
                       {criterion.item_type === "score" ? (
                         <p>Score : {detail?.score ?? 0}</p>
                       ) : null}
+
                       {criterion.item_type === "text" ? (
-                        <p>Commentaire : {detail?.text_value || "Aucun commentaire"}</p>
+                        <p>
+                          Commentaire :{" "}
+                          {detail?.text_value || "Aucun commentaire"}
+                        </p>
                       ) : null}
                     </div>
                   </div>
@@ -363,6 +496,55 @@ export default function EtudiantPage() {
               })}
             </div>
           )}
+        </Panel>
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <Panel title="Mon assiduité">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl bg-green-50 p-4 text-green-700">
+              <p className="text-sm font-medium">Présences</p>
+              <p className="mt-2 text-3xl font-bold">
+                {attendanceStats.present}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-red-50 p-4 text-red-700">
+              <p className="text-sm font-medium">Absences</p>
+              <p className="mt-2 text-3xl font-bold">
+                {attendanceStats.absent}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-orange-50 p-4 text-orange-700">
+              <p className="text-sm font-medium">Retards</p>
+              <p className="mt-2 text-3xl font-bold">{attendanceStats.late}</p>
+            </div>
+
+            <div className="rounded-2xl bg-blue-50 p-4 text-blue-700">
+              <p className="text-sm font-medium">Excusés</p>
+              <p className="mt-2 text-3xl font-bold">
+                {attendanceStats.excused}
+              </p>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Notifications">
+          <div className="rounded-2xl bg-white p-4">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-[#d88088]" />
+              <div>
+                <p className="font-semibold text-[#2c2f4a]">
+                  {notificationsCount} notification(s) non lue(s)
+                </p>
+                <p className="text-sm text-[#8d8278]">
+                  Les nouveaux résultats et informations importantes
+                  apparaîtront ici.
+                </p>
+              </div>
+            </div>
+          </div>
         </Panel>
       </div>
 

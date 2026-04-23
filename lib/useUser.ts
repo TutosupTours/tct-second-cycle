@@ -7,7 +7,7 @@ export type AppProfile = {
   id: string;
   email: string;
   full_name: string;
-  role: "admin" | "br" | "examiner" | "student";
+  role: "admin" | "br" | "examiner" | "student" | "faculty";
   level?: string | null;
   program?: string | null;
   is_active?: boolean | null;
@@ -25,18 +25,18 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
+    getUser();
 
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      getUser();
     });
 
     return () => {
-      data.subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
-  async function loadUser() {
+  async function getUser() {
     setLoading(true);
 
     const {
@@ -50,11 +50,16 @@ export function useUser() {
       return;
     }
 
-    setUser(session.user);
+    const currentUser = session.user;
+    setUser(currentUser);
 
-    const { data, error } = await supabase.rpc("get_my_profile");
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
 
-    if (error) {
+    if (error || !data) {
       console.error("Erreur récupération profil:", error);
       setProfile(null);
       setLoading(false);
@@ -65,5 +70,9 @@ export function useUser() {
     setLoading(false);
   }
 
-  return { user, profile, loading };
+  return {
+    user,
+    profile,
+    loading,
+  };
 }

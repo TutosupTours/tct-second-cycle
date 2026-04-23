@@ -1,98 +1,39 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-function getRoleLabel(role: string | null) {
-  if (role === "admin") return "Admin";
-  if (role === "br") return "BR";
-  if (role === "examinateur") return "Examinateur";
-  if (role === "etudiant") return "Étudiant";
-  return "Plateforme";
-}
-
-function normalizeRoleParam(role: string | null) {
-  if (role === "admin") return "admin";
-  if (role === "br") return "br";
-  if (role === "examinateur") return "examiner";
-  if (role === "etudiant") return "student";
-  return null;
-}
-
-function getRedirectPath(role: string | null) {
-  if (role === "admin") return "/admin";
-  if (role === "br") return "/br";
-  if (role === "examiner") return "/examinateur";
-  if (role === "student") return "/etudiant";
-  return "/";
-}
-
 export default function LoginPage() {
-  const [roleParam, setRoleParam] = useState<string | null>(null);
-  const [roleLabel, setRoleLabel] = useState("Plateforme");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const currentRole = params.get("role");
-    setRoleParam(currentRole);
-    setRoleLabel(getRoleLabel(currentRole));
-  }, []);
 
   async function handleLogin() {
-    setLoading(true);
-    setMessage("");
-
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email,
       password,
     });
 
     if (error) {
-      setMessage("Erreur de connexion. Vérifie ton email et ton mot de passe.");
-      setLoading(false);
-      return;
+      setMessage("Erreur connexion");
+    } else {
+      window.location.href = "/";
     }
-
-    const { data: profile, error: profileError } = await supabase.rpc("get_my_profile");
-
-    if (profileError || !profile) {
-      console.error("Erreur profil:", profileError);
-      setMessage("Profil introuvable. Contacte l’administrateur.");
-      setLoading(false);
-      return;
-    }
-
-    const expectedRole = normalizeRoleParam(roleParam);
-
-    if (expectedRole && profile.role !== expectedRole) {
-      setMessage("Ce compte n’a pas accès à cet espace.");
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = getRedirectPath(profile.role);
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
-      <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
-        <h1 className="text-3xl font-bold text-[#2f2f2f]">Connexion {roleLabel}</h1>
-        <p className="mt-2 text-sm text-[#666]">
-          Accède à ton espace sur la plateforme Second Cycle TCT.
-        </p>
+    <main className="min-h-screen flex items-center justify-center bg-[#f5efe6]">
+      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
 
-        <div className="mt-6 space-y-4">
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Connexion
+        </h1>
+
+        <div className="flex flex-col gap-3">
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+            className="p-3 rounded-xl border"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -100,31 +41,24 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Mot de passe"
-            className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+            className="p-3 rounded-xl border"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
+          <button
+            onClick={handleLogin}
+            className="bg-[#2c2f4a] text-white p-3 rounded-xl font-semibold"
+          >
+            Se connecter
+          </button>
         </div>
 
-        {message ? (
-          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={handleLogin}
-          disabled={loading}
-          className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-lg font-semibold text-white transition hover:opacity-95 disabled:opacity-50"
-        >
-          {loading ? "Connexion..." : "Se connecter"}
-        </button>
-
-        <a
-          href="/signup"
-          className="mt-4 block text-center text-sm font-medium text-[#7c9c56]"
-        >
-          Créer un compte étudiant
-        </a>
+        {message && (
+          <p className="text-red-500 mt-4 text-sm text-center">
+            {message}
+          </p>
+        )}
       </div>
     </main>
   );

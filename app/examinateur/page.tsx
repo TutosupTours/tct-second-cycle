@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   PlayCircle,
   UserCircle2,
-  Users,
+  Clock3,
 } from "lucide-react";
 import { useUser } from "@/lib/useUser";
 import { supabase } from "@/lib/supabaseClient";
@@ -21,44 +21,42 @@ import DashboardShell, {
   StatCard,
 } from "@/components/dashboard-shell";
 
-type Assignment = {
-  id: string;
-  session_id: string;
-  room_id: string | null;
-};
-
 type SessionItem = {
   id: string;
   title: string;
   starts_at: string;
   location: string;
+  program: string;
+  level: string;
 };
 
-type RoomItem = {
+type StationAssignment = {
   id: string;
-  name: string;
+  session_id: string;
+  examiner_role_code: string;
+  planned_hours: number | null;
 };
 
-type ResultItem = {
-  id: string;
-  evaluated_at: string;
-  global_score: number | null;
+type Attendance = {
+  session_id: string;
   student_profile_id: string;
+  status: string;
 };
 
-type StudentItem = {
+type Student = {
   id: string;
   full_name: string;
+  email: string;
 };
 
 export default function ExaminateurPage() {
   const { user, profile, loading } = useUser();
 
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [rooms, setRooms] = useState<RoomItem[]>([]);
-  const [results, setResults] = useState<ResultItem[]>([]);
-  const [students, setStudents] = useState<StudentItem[]>([]);
+  const [assignments, setAssignments] = useState<StationAssignment[]>([]);
+  const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
@@ -66,65 +64,103 @@ export default function ExaminateurPage() {
       window.location.href = "/login?role=examinateur";
       return;
     }
+
     if (!loading && user && profile?.role !== "examiner") {
       window.location.href = "/";
       return;
     }
+
     if (user && profile?.role === "examiner") {
       loadDashboard();
     }
   }, [user, profile, loading]);
 
+  useEffect(() => {
+    if (!selectedSessionId) return;
+
+    loadAttendance(selectedSessionId);
+
+    const channel = supabase
+      .channel(`examiner-attendance-${selectedSessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "session_attendance",
+          filter: `session_id=eq.${selectedSessionId}`,
+        },
+        () => loadAttendance(selectedSessionId)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSessionId]);
+
   async function loadDashboard() {
     setPageLoading(true);
 
-    const [assignmentsRes, sessionsRes, roomsRes, resultsRes, studentsRes] =
-      await Promise.all([
-        supabase
-          .from("examiner_assignments")
-          .select("*")
-          .eq("examiner_profile_id", user.id),
-        supabase.from("sessions").select("id, title, starts_at, location"),
-        supabase.from("session_rooms").select("id, name"),
-        supabase
-          .from("evaluation_results")
-          .select("id, evaluated_at, global_score, student_profile_id")
-          .eq("examiner_profile_id", user.id)
-          .order("evaluated_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name").eq("role", "student"),
-      ]);
+    const [assignmentsRes, sessionsRes, studentsRes] = await Promise.all([
+      supabase
+        .from("station_examiner_assignments")
+        .select("*")
+        .eq("examiner_profile_id", user.id),
+      supabase.from("sessions").select("id, title, starts_at, location, program, level"),
+      supabase.from("profiles").select("id, full_name, email").eq("role", "student"),
+    ]);
 
-    if (!assignmentsRes.error) setAssignments((assignmentsRes.data as Assignment[]) || []);
+    if (!assignmentsRes.error) {
+      const loadedAssignments = (assignmentsRes.data as StationAssignment[]) || [];
+      setAssignments(loadedAssignments);
+
+      if (loadedAssignments[0]) {
+        setSelectedSessionId(loadedAssignments[0].session_id);
+      }
+    }
+
     if (!sessionsRes.error) setSessions((sessionsRes.data as SessionItem[]) || []);
-    if (!roomsRes.error) setRooms((roomsRes.data as RoomItem[]) || []);
-    if (!resultsRes.error) setResults((resultsRes.data as ResultItem[]) || []);
-    if (!studentsRes.error) setStudents((studentsRes.data as StudentItem[]) || []);
+    if (!studentsRes.error) setStudents((studentsRes.data as Student[]) || []);
 
     setPageLoading(false);
   }
 
-  const upcomingSessions = assignments.map((a) => {
-    const session = sessions.find((s) => s.id === a.session_id);
-    const room = rooms.find((r) => r.id === a.room_id);
-    return {
-      id: a.id,
-      title: session?.title || "Session",
-      starts_at: session?.starts_at || "",
-      location: session?.location || "",
-      room: room?.name || "Salle",
-    };
-  });
+  async function loadAttendance(sessionId: string) {
+    const { data } = await supabase
+      .from("session_attendance")
+      .select("*")
+      .eq("session_id", sessionId);
 
-  const totalStudentsToEvaluate = upcomingSessions.length * 6;
-  const evaluationsDone = results.length;
+    setAttendance((data as Attendance[]) || []);
+  }
 
-  const recentResults = useMemo(() => {
-    return results.slice(0, 4).map((r) => ({
-      ...r,
-      studentName:
-        students.find((s) => s.id === r.student_profile_id)?.full_name || "Étudiant",
-    }));
-  }, [results, students]);
+  const assignedSessionIds = Array.from(new Set(assignments.map((a) => a.session_id)));
+
+  const assignedSessions = sessions.filter((s) => assignedSessionIds.includes(s.id));
+
+  const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+
+  const presentStudents = useMemo(() => {
+    const presentIds = attendance
+      .filter((a) => a.status === "present" || a.status === "late")
+      .map((a) => a.student_profile_id);
+
+    return students.filter((s) => presentIds.includes(s.id));
+  }, [attendance, students]);
+
+  const absentStudents = useMemo(() => {
+    const absentIds = attendance
+      .filter((a) => a.status === "absent")
+      .map((a) => a.student_profile_id);
+
+    return students.filter((s) => absentIds.includes(s.id));
+  }, [attendance, students]);
+
+  const totalPlannedHours = assignments.reduce(
+    (sum, item) => sum + Number(item.planned_hours || 0),
+    0
+  );
 
   if (loading || pageLoading) return <main className="p-10">Chargement...</main>;
   if (!user || !profile || profile.role !== "examiner") return <main className="p-10">Redirection...</main>;
@@ -141,88 +177,75 @@ export default function ExaminateurPage() {
       navItems={[
         { label: "Tableau de bord", href: "/examinateur", icon: LayoutDashboard },
         { label: "Mes sessions", href: "/examinateur", icon: ClipboardList },
-        { label: "Mes stations", href: "/examinateur", icon: FileText },
-        { label: "Évaluations", href: "/examinateur", icon: CheckSquare },
-        { label: "Étudiants évalués", href: "/examinateur", icon: Users },
+        { label: "Présents", href: "/examinateur", icon: CheckSquare },
+        { label: "Évaluations", href: "/examinateur", icon: FileText },
+        { label: "Heures", href: "/examinateur", icon: Clock3 },
         { label: "Démarrer", href: "/examinateur", icon: PlayCircle },
         { label: "Profil", href: "/examinateur", icon: UserCircle2 },
       ]}
     >
-      <DashboardTitle title="Tableau de bord" color="#d5a528" />
+      <DashboardTitle
+        title="Tableau de bord examinateur"
+        subtitle="Liste synchronisée avec l’appel réalisé par l’administration"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Sessions à venir" value={String(upcomingSessions.length)} subtitle="Affectées" color="#d5a528" />
-        <StatCard title="Stations" value={String(assignments.length)} subtitle="Assignées" color="#d5a528" />
-        <StatCard title="Étudiants" value={String(totalStudentsToEvaluate)} subtitle="À évaluer" color="#d5a528" />
-        <StatCard title="Évaluations" value={String(evaluationsDone)} subtitle="Déjà faites" color="#d5a528" />
+        <StatCard title="Sessions" value={String(assignedSessions.length)} subtitle="Affectées" />
+        <StatCard title="Présents" value={String(presentStudents.length)} subtitle="À évaluer" />
+        <StatCard title="Absents" value={String(absentStudents.length)} subtitle="Non présents" />
+        <StatCard title="Heures prévues" value={String(totalPlannedHours)} subtitle="Total" />
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <Panel title="Mes prochaines sessions">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <Panel title="Choisir une session">
           <div className="space-y-3">
-            {upcomingSessions.slice(0, 4).map((s) => (
-              <div key={s.id} className="rounded-2xl bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-[#3f3732]">{s.title}</p>
-                    <p className="mt-1 text-sm text-[#8d8278]">
-                      {s.starts_at ? new Date(s.starts_at).toLocaleString("fr-FR") : ""}
-                    </p>
-                    <p className="text-sm text-[#8d8278]">
-                      {s.location} · {s.room}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-[#fff0c8] px-3 py-1 text-xs font-semibold text-[#d5a528]">
-                    Détails
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
+            <select
+              className="w-full rounded-2xl border border-[#eadccf] bg-white px-4 py-3"
+              value={selectedSessionId}
+              onChange={(e) => setSelectedSessionId(e.target.value)}
+            >
+              <option value="">Choisir une session</option>
+              {assignedSessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
 
-        <Panel title="À faire aujourd'hui">
-          <div className="space-y-3">
-            {upcomingSessions.slice(0, 3).map((s) => (
-              <div key={s.id} className="rounded-2xl bg-white p-4">
-                <p className="font-semibold text-[#3f3732]">Évaluer 12 étudiants</p>
-                <p className="mt-1 text-sm text-[#8d8278]">
-                  {s.title} · {s.room}
+            {selectedSession ? (
+              <div className="rounded-2xl bg-white p-4">
+                <p className="font-semibold">{selectedSession.title}</p>
+                <p className="text-sm text-[#8d8278]">
+                  {new Date(selectedSession.starts_at).toLocaleString("fr-FR")}
                 </p>
+                <p className="text-sm text-[#8d8278]">{selectedSession.location}</p>
               </div>
-            ))}
+            ) : null}
           </div>
         </Panel>
-      </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel title="Mes dernières évaluations">
+        <Panel title="Étudiants présents / retard">
           <div className="space-y-3">
-            {recentResults.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucune évaluation publiée pour le moment.</p>
+            {presentStudents.length === 0 ? (
+              <p className="text-sm text-[#8d8278]">Aucun étudiant présent pour le moment.</p>
             ) : (
-              recentResults.map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4">
-                  <div>
-                    <p className="font-semibold text-[#3f3732]">{r.studentName}</p>
-                    <p className="text-sm text-[#8d8278]">
-                      {new Date(r.evaluated_at).toLocaleDateString("fr-FR")}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-[#edf6df] px-3 py-1 text-xs font-semibold text-[#7a9a45]">
-                    Validée
-                  </span>
+              presentStudents.map((student) => (
+                <div key={student.id} className="rounded-2xl bg-white p-4">
+                  <p className="font-semibold text-[#2c2f4a]">{student.full_name}</p>
+                  <p className="text-sm text-[#8d8278]">{student.email}</p>
                 </div>
               ))
             )}
           </div>
         </Panel>
+      </div>
 
+      <div className="mt-5">
         <Panel title="Accès rapide">
-          <div className="grid gap-3">
-            <MiniAction href="/examinateur" label="Commencer une évaluation" />
-            <MiniAction href="/examinateur" label="Liste des étudiants" />
-            <MiniAction href="/examinateur" label="Grilles d’évaluation" />
+          <div className="grid gap-3 md:grid-cols-3">
+            <MiniAction href="/examinateur" label="Démarrer une évaluation" />
+            <MiniAction href="/examinateur" label="Voir mes affectations" />
+            <MiniAction href="/examinateur" label="Télécharger attestation" />
           </div>
         </Panel>
       </div>

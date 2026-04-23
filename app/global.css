@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f5efe6;
+  color: #2c2f4a;
+}
+
+/* Inputs lisibles */
+input, select, textarea {
+  color: #2c2f4a !important;
+  background: white !important;
+}
+
+::placeholder {
+  color: #9b9187;
+}
+
+/* Scrollbar propre */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8cfc5;
+  border-radius: 10px;
+}
