@@ -3,25 +3,26 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-type Profile = {
+export type AppProfile = {
   id: string;
   email: string;
   full_name: string;
   role: "admin" | "br" | "examiner" | "student";
   level?: string | null;
   program?: string | null;
+  is_active?: boolean;
 };
 
 export function useUser() {
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<AppProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentUser();
+    loadUser();
 
     const { data } = supabase.auth.onAuthStateChange(() => {
-      getCurrentUser();
+      loadUser();
     });
 
     return () => {
@@ -29,7 +30,7 @@ export function useUser() {
     };
   }, []);
 
-  async function getCurrentUser() {
+  async function loadUser() {
     setLoading(true);
 
     const {
@@ -45,19 +46,16 @@ export function useUser() {
 
     setUser(session.user);
 
-    const { data: profileData, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("get_my_profile");
 
     if (error) {
-      console.error(error);
+      console.error("Erreur récupération profil:", error);
       setProfile(null);
-    } else {
-      setProfile(profileData as Profile | null);
+      setLoading(false);
+      return;
     }
 
+    setProfile(data as AppProfile);
     setLoading(false);
   }
 

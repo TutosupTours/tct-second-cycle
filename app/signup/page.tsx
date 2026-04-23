@@ -25,36 +25,18 @@ export default function SignupPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: cleanEmail,
       password,
+      options: {
+        data: {
+          full_name: cleanName,
+        },
+      },
     });
 
     if (error) {
       setMessage(error.message || "Erreur lors de la création du compte.");
-      setLoading(false);
-      return;
-    }
-
-    const user = data.user;
-
-    if (!user) {
-      setMessage("Compte créé, mais utilisateur introuvable.");
-      setLoading(false);
-      return;
-    }
-
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: user.id,
-      email: cleanEmail,
-      full_name: cleanName,
-      role: "student",
-      is_active: true,
-    });
-
-    if (profileError) {
-      console.error(profileError);
-      setMessage("Compte créé, mais erreur lors de la création du profil.");
       setLoading(false);
       return;
     }

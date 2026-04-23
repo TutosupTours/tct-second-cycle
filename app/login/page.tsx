@@ -13,8 +13,24 @@ function getRoleLabel(role: string | null) {
   return "Plateforme";
 }
 
+function normalizeRoleParam(role: string | null) {
+  if (role === "admin") return "admin";
+  if (role === "br") return "br";
+  if (role === "examinateur") return "examiner";
+  if (role === "etudiant") return "student";
+  return null;
+}
+
+function getRedirectPath(role: string | null) {
+  if (role === "admin") return "/admin";
+  if (role === "br") return "/br";
+  if (role === "examiner") return "/examinateur";
+  if (role === "student") return "/etudiant";
+  return "/";
+}
+
 export default function LoginPage() {
-  const [role, setRole] = useState<string | null>(null);
+  const [roleParam, setRoleParam] = useState<string | null>(null);
   const [roleLabel, setRoleLabel] = useState("Plateforme");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +40,7 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const currentRole = params.get("role");
-    setRole(currentRole);
+    setRoleParam(currentRole);
     setRoleLabel(getRoleLabel(currentRole));
   }, []);
 
@@ -43,11 +59,25 @@ export default function LoginPage() {
       return;
     }
 
-    if (role === "admin") window.location.href = "/admin";
-    else if (role === "br") window.location.href = "/br";
-    else if (role === "examinateur") window.location.href = "/examinateur";
-    else if (role === "etudiant") window.location.href = "/etudiant";
-    else window.location.href = "/";
+    const { data: profile, error: profileError } = await supabase.rpc("get_my_profile");
+
+    if (profileError || !profile) {
+      console.error("Erreur profil:", profileError);
+      setMessage("Profil introuvable. Contacte l’administrateur.");
+      setLoading(false);
+      return;
+    }
+
+    const expectedRole = normalizeRoleParam(roleParam);
+
+    if (expectedRole && profile.role !== expectedRole) {
+      setMessage("Ce compte n’a pas accès à cet espace.");
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = getRedirectPath(profile.role);
   }
 
   return (
