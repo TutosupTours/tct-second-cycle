@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
@@ -77,7 +79,7 @@ export default function Home() {
     setSessionsLoading(false);
   }
 
-  async function handleSignup() {
+  async function handleSignupRequest() {
     const fullName = signupName.trim();
     const email = signupEmail.trim().toLowerCase();
 
@@ -98,7 +100,7 @@ export default function Home() {
     });
 
     if (error) {
-      console.error("Erreur inscription:", error);
+      console.error(error);
       setSignupMessage("Erreur lors de l’envoi de la demande.");
       setSignupLoading(false);
       return;
@@ -223,12 +225,19 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={handleSignup}
+                onClick={handleSignupRequest}
                 disabled={signupLoading}
                 className="mt-6 w-full rounded-2xl bg-[#d84f4f] px-6 py-4 text-xl font-semibold text-white transition hover:opacity-95 disabled:opacity-50"
               >
                 {signupLoading ? "Envoi..." : "Envoyer ma demande"}
               </button>
+
+              <a
+                href="/signup"
+                className="mt-4 block text-center text-sm font-medium text-[#7c9c56]"
+              >
+                Ou créer directement un compte étudiant
+              </a>
             </div>
           </section>
         </section>

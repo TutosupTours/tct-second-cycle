@@ -33,7 +33,7 @@ export default function LoginPage() {
     setMessage("");
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -88,6 +88,13 @@ export default function LoginPage() {
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
+
+        <a
+          href="/signup"
+          className="mt-4 block text-center text-sm font-medium text-[#7c9c56]"
+        >
+          Créer un compte étudiant
+        </a>
       </div>
     </main>
   );

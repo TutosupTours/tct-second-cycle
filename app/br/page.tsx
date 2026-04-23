@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useUser } from "@/lib/useUser";
+
+export const dynamic = "force-dynamic";
 
 type Request = {
   id: string;
@@ -14,12 +17,18 @@ type Request = {
 };
 
 export default function BRPage() {
+  const { user, profile, loading: userLoading } = useUser();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if (!userLoading && !user) {
+      window.location.href = "/login?role=br";
+      return;
+    }
+
+    if (user) fetchRequests();
+  }, [user, userLoading]);
 
   async function fetchRequests() {
     setLoading(true);
@@ -46,12 +55,7 @@ export default function BRPage() {
       .update({ payment_status: "validated" })
       .eq("id", id);
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    fetchRequests();
+    if (!error) fetchRequests();
   }
 
   async function rejectRequest(id: string) {
@@ -60,19 +64,24 @@ export default function BRPage() {
       .update({ payment_status: "rejected" })
       .eq("id", id);
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    fetchRequests();
+    if (!error) fetchRequests();
   }
+
+  if (userLoading) return <main className="p-10">Chargement...</main>;
 
   return (
     <main className="min-h-screen bg-[#f5f0e5] p-8">
-      <h1 className="text-4xl font-bold text-[#2f2f2f] mb-6">
-        Interface BR – Demandes d'inscription
-      </h1>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[#2f2f2f]">Interface BR</h1>
+          <p className="mt-2 text-sm text-[#666]">
+            {user?.email} · rôle : {profile?.role}
+          </p>
+        </div>
+        <a href="/logout" className="rounded-xl bg-red-600 px-4 py-2 text-white">
+          Se déconnecter
+        </a>
+      </div>
 
       {loading ? (
         <p>Chargement...</p>
@@ -90,9 +99,6 @@ export default function BRPage() {
                 <p className="text-sm text-gray-600">{req.email}</p>
                 <p className="text-sm mt-1">
                   {req.level} · {req.program}
-                </p>
-                <p className="text-sm mt-1 text-gray-500">
-                  {new Date(req.created_at).toLocaleString("fr-FR")}
                 </p>
                 <p className="mt-2 text-sm font-medium">
                   Statut : {req.payment_status}
