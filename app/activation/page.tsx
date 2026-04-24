@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -10,61 +12,118 @@ export default function ActivationPage() {
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
   const [loginId, setLoginId] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setToken(params.get("token") || "");
-  }, []);
+    const t = params.get("token");
 
-  async function handleActivation() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/activate-student`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token, pin }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMessage("Erreur : " + JSON.stringify(data));
+    if (!t) {
+      setMessage("Lien invalide : token manquant.");
       return;
     }
 
-    setLoginId(data.login_id);
-    setMessage("Compte activé !");
+    setToken(t);
+  }, []);
+
+  async function handleActivation() {
+    setMessage("");
+    setLoginId("");
+
+    if (!token) {
+      setMessage("Lien invalide : token manquant.");
+      return;
+    }
+
+    if (!/^[0-9]{4}$/.test(pin)) {
+      setMessage("Le code doit contenir exactement 4 chiffres.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/activate-student`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          pin,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setMessage("Erreur activation : " + JSON.stringify(data));
+        setLoading(false);
+        return;
+      }
+
+      setLoginId(data.login_id);
+      setMessage("Compte activé avec succès.");
+    } catch (error) {
+      setMessage("Erreur serveur pendant l’activation.");
+    }
+
+    setLoading(false);
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-[#f5f0e5]">
-      <div className="bg-white p-6 rounded-xl text-center">
-        <h1 className="text-xl font-bold mb-4">Activation</h1>
+    <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-8 text-center shadow">
+        <h1 className="text-3xl font-bold text-[#2f2f2f]">Activation</h1>
 
-        {!loginId && (
+        {!loginId ? (
           <>
+            <p className="mt-4 text-sm text-[#666]">
+              Choisis ton code personnel à 4 chiffres.
+            </p>
+
             <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
               placeholder="Code 4 chiffres"
+              className="mt-6 w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 text-center outline-none"
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              className="border p-2 mb-3"
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
             />
-            <button onClick={handleActivation} className="bg-green-600 text-white px-4 py-2 rounded">
-              Activer
+
+            <button
+              onClick={handleActivation}
+              disabled={loading}
+              className="mt-4 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 font-semibold text-white disabled:opacity-50"
+            >
+              {loading ? "Activation..." : "Activer"}
             </button>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-sm text-[#666]">
+              Ton identifiant étudiant est :
+            </p>
+
+            <p className="mt-3 rounded-2xl bg-[#edf5e6] px-4 py-3 text-xl font-bold text-[#2f4d1f]">
+              {loginId}
+            </p>
+
+            <a
+              href="/login?role=student"
+              className="mt-6 inline-block rounded-2xl bg-[#7c9c56] px-6 py-3 font-semibold text-white"
+            >
+              Se connecter
+            </a>
           </>
         )}
 
-        {loginId && (
-          <div>
-            <p className="mt-4">Ton identifiant :</p>
-            <strong>{loginId}</strong>
-          </div>
-        )}
-
-        <p className="mt-4">{message}</p>
+        {message ? (
+          <p className="mt-5 text-sm font-medium text-[#5f574c]">{message}</p>
+        ) : null}
       </div>
     </main>
   );
