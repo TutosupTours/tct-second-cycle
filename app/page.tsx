@@ -19,30 +19,10 @@ const roles = [
 ];
 
 const missions = [
-  {
-    icon: CalendarDays,
-    color: "#df7f7a",
-    title: "Sessions & Inscriptions",
-    text: "Consultez les sessions disponibles et inscrivez-vous facilement.",
-  },
-  {
-    icon: Users,
-    color: "#8eab60",
-    title: "Évaluations",
-    text: "Suivez vos évaluations et vos progrès.",
-  },
-  {
-    icon: TrendingUp,
-    color: "#efaaa5",
-    title: "Suivi personnalisé",
-    text: "Retrouvez votre parcours et vos résultats.",
-  },
-  {
-    icon: MessageCircle,
-    color: "#9db965",
-    title: "Accompagnement",
-    text: "Accédez aux ressources et conseils.",
-  },
+  { icon: CalendarDays, color: "#df7f7a", title: "Sessions & Inscriptions", text: "Consultez les sessions disponibles et inscrivez-vous facilement." },
+  { icon: Users, color: "#8eab60", title: "Évaluations", text: "Suivez vos évaluations et vos progrès." },
+  { icon: TrendingUp, color: "#efaaa5", title: "Suivi personnalisé", text: "Retrouvez votre parcours et vos résultats." },
+  { icon: MessageCircle, color: "#9db965", title: "Accompagnement", text: "Accédez aux ressources et conseils." },
 ];
 
 export default function HomePage() {
@@ -108,7 +88,7 @@ export default function HomePage() {
                 <Users className="h-8 w-8" />
               </div>
               <div>
-                <h2 className="text-3xl font-semibold">Connexion</h2>
+                <h2 className="text-3xl font-semibold text-[#2c2f4a]">Connexion</h2>
                 <p className="text-sm text-[#8b8177]">Choisissez votre espace</p>
               </div>
             </div>
@@ -117,12 +97,12 @@ export default function HomePage() {
               <input
                 disabled
                 placeholder="Identifiant"
-                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a]"
+                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
               />
               <input
                 disabled
                 placeholder="Mot de passe"
-                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a]"
+                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
               />
 
               <Link
@@ -158,9 +138,21 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="mt-7 text-center">
-              <Link href="/activation" className="text-sm font-medium text-[#668b4e] underline">
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <Link
+                href="/activation"
+                className="rounded-full border border-[#cfe3bf] bg-[#edf5e6] px-5 py-2 text-sm font-bold shadow-sm transition hover:scale-105 hover:shadow-md"
+                style={{ color: "#2f4d1f" }}
+              >
                 Activer mon compte étudiant
+              </Link>
+
+              <Link
+                href="/signup"
+                className="rounded-full px-5 py-3 text-sm font-bold shadow-lg transition hover:scale-105 hover:shadow-xl animate-pulse"
+                style={{ backgroundColor: "#cf332b", color: "#ffffff" }}
+              >
+                Demande d’inscription
               </Link>
             </div>
           </div>
