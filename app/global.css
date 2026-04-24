@@ -1,4 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #fbf1df;
+  --text: #2c2f4a;
+}
 
 * {
   box-sizing: border-box;
@@ -6,37 +13,43 @@
 
 html,
 body {
-  padding: 0;
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: #fbf1df;
-  color: #2c2f4a;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
 }
 
+/* Ne casse pas les boutons/liens colorés */
+a,
+button {
+  font-family: inherit;
+}
+
+/* Corrige uniquement les champs */
 input,
 select,
 textarea {
   color: #2c2f4a !important;
-  background-color: #fffaf4 !important;
   caret-color: #2c2f4a !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #9a8f85 !important;
+  color: #8b8177 !important;
   opacity: 1 !important;
 }
 
-button,
-a {
-  font-family: inherit;
+/* Important : ne pas forcer tous les liens en blanc */
+.text-white {
+  color: #ffffff !important;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
+/* Boutons accueil */
+.home-link-green {
+  color: #2f4d1f !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #d8cfc5;
-  border-radius: 10px;
+.home-link-red {
+  color: #ffffff !important;
 }

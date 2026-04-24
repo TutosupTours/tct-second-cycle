@@ -33,7 +33,7 @@ export default function HomePage() {
 
       <section className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 py-8">
 
-        {/* HEADER CENTRÉ */}
+        {/* HEADER */}
         <header className="flex flex-col items-center text-center">
 
           <div className="mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-2xl">
@@ -137,19 +137,15 @@ export default function HomePage() {
 
                 <Link
                   href="/activation"
-                  className="px-4 py-2 rounded-full bg-[#edf5e6] border border-[#cfe3bf] font-semibold shadow-sm"
-                  style={{ color: "#2f4d1f" }}
+                  className="home-link-green px-4 py-2 rounded-full bg-[#edf5e6] border border-[#cfe3bf] font-semibold shadow-sm"
                 >
                   Activer mon compte étudiant
                 </Link>
 
                 <Link
                   href="/signup"
-                  className="px-4 py-2 rounded-full font-semibold animate-pulse shadow-lg"
-                  style={{
-                    backgroundColor: "#cf332b",
-                    color: "#ffffff",
-                  }}
+                  className="home-link-red px-4 py-2 rounded-full font-semibold animate-pulse shadow-lg"
+                  style={{ backgroundColor: "#cf332b" }}
                 >
                   Demande d’inscription
                 </Link>
