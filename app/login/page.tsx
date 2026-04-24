@@ -64,6 +64,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
+    // 1. récupérer email via login_id
     const lookupRes = await fetch(`${SUPABASE_URL}/functions/v1/staff-login`, {
       method: "POST",
       headers: {
@@ -84,12 +85,14 @@ export default function LoginPage() {
       return;
     }
 
+    // 2. vérifier rôle cohérent
     if (lookup.staff.role !== role) {
       setMessage("Cet identifiant ne correspond pas à cet espace.");
       setLoading(false);
       return;
     }
 
+    // 3. login Supabase
     const { error } = await supabase.auth.signInWithPassword({
       email: lookup.staff.email,
       password,
@@ -101,6 +104,10 @@ export default function LoginPage() {
       return;
     }
 
+    // 🔥 4. STOCKAGE SESSION (CRUCIAL)
+    localStorage.setItem("staff_session", JSON.stringify(lookup.staff));
+
+    // 5. redirection
     window.location.href = `/${lookup.staff.role}`;
   }
 
@@ -108,30 +115,18 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
-      <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow">
+
         <h1 className="text-3xl font-bold text-[#2f2f2f]">
-          {isStudent
-            ? "Connexion étudiant"
-            : role === "br"
-            ? "Connexion BR"
-            : role === "admin"
-            ? "Connexion admin"
-            : role === "examinateur"
-            ? "Connexion examinateur"
-            : "Connexion faculté"}
+          {isStudent ? "Connexion étudiant" : `Connexion ${role}`}
         </h1>
 
-        <p className="mt-2 text-sm text-[#666]">
-          {isStudent
-            ? "Utilise ton identifiant et ton code à 4 chiffres."
-            : "Utilise ton identifiant et ton mot de passe."}
-        </p>
-
         <div className="mt-6 space-y-4">
+
           <input
             type="text"
             placeholder="Identifiant"
-            className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+            className="w-full rounded-2xl border px-4 py-3"
             value={loginId}
             onChange={(e) => setLoginId(e.target.value)}
           />
@@ -142,7 +137,7 @@ export default function LoginPage() {
               inputMode="numeric"
               maxLength={4}
               placeholder="Code 4 chiffres"
-              className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+              className="w-full rounded-2xl border px-4 py-3"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
             />
@@ -150,24 +145,26 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="Mot de passe"
-              className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+              className="w-full rounded-2xl border px-4 py-3"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           )}
+
         </div>
 
         <button
           onClick={isStudent ? handleStudentLogin : handleStaffLogin}
           disabled={loading}
-          className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
+          className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-white"
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
 
-        {message ? (
-          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
-        ) : null}
+        {message && (
+          <p className="mt-4 text-red-600 text-sm">{message}</p>
+        )}
+
       </div>
     </main>
   );
