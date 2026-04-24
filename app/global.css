@@ -4,28 +4,38 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   padding: 0;
   margin: 0;
   font-family: 'Inter', sans-serif;
-  background: #f5efe6;
+  background: #fbf1df;
   color: #2c2f4a;
 }
 
-/* Inputs lisibles */
-input, select, textarea {
+input,
+select,
+textarea {
   color: #2c2f4a !important;
-  background: white !important;
+  background-color: #fffaf4 !important;
+  caret-color: #2c2f4a !important;
 }
 
-::placeholder {
-  color: #9b9187;
+input::placeholder,
+textarea::placeholder {
+  color: #9a8f85 !important;
+  opacity: 1 !important;
 }
 
-/* Scrollbar propre */
+button,
+a {
+  font-family: inherit;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #d8cfc5;
   border-radius: 10px;
