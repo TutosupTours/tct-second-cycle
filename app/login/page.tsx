@@ -1,16 +1,52 @@
 "use client";
 
-import { useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function LoginPage() {
+  const [role, setRole] = useState("student");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [loginId, setLoginId] = useState("");
   const [pin, setPin] = useState("");
-  const [message, setMessage] = useState("");
 
-  async function handleLogin() {
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRole(params.get("role") || "student");
+  }, []);
+
+  async function handleBRLogin() {
+    setLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage("Identifiants BR incorrects.");
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = "/br";
+  }
+
+  async function handleStudentLogin() {
+    setLoading(true);
+    setMessage("");
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/student-login`, {
       method: "POST",
       headers: {
@@ -19,45 +55,105 @@ export default function LoginPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        login_id: loginId,
+        login_id: loginId.trim().toLowerCase(),
         pin,
       }),
     });
 
     const data = await res.json();
 
-    if (!res.ok) {
-      setMessage(data.error);
+    if (!res.ok || !data.success) {
+      setMessage(data.error || "Connexion impossible.");
+      setLoading(false);
       return;
     }
 
-    setMessage("Connexion réussie !");
+    localStorage.setItem("student_session", JSON.stringify(data.user));
+    window.location.href = "/student";
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-[#f5f0e5]">
-      <div className="bg-white p-6 rounded-xl text-center">
-        <h1 className="text-xl font-bold mb-4">Connexion étudiant</h1>
+    <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+        {role === "br" ? (
+          <>
+            <h1 className="text-3xl font-bold text-[#2f2f2f]">
+              Connexion BR
+            </h1>
 
-        <input
-          placeholder="Identifiant"
-          value={loginId}
-          onChange={(e) => setLoginId(e.target.value)}
-          className="border p-2 mb-3"
-        />
+            <p className="mt-2 text-sm text-[#666]">
+              Accès réservé au bureau.
+            </p>
 
-        <input
-          placeholder="Code 4 chiffres"
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          className="border p-2 mb-3"
-        />
+            <div className="mt-6 space-y-4">
+              <input
+                type="email"
+                placeholder="Email BR"
+                className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-        <button onClick={handleLogin} className="bg-green-600 text-white px-4 py-2 rounded">
-          Se connecter
-        </button>
+              <input
+                type="password"
+                placeholder="Mot de passe"
+                className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-        <p className="mt-3">{message}</p>
+            <button
+              onClick={handleBRLogin}
+              disabled={loading}
+              className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
+            >
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-3xl font-bold text-[#2f2f2f]">
+              Connexion étudiant
+            </h1>
+
+            <p className="mt-2 text-sm text-[#666]">
+              Utilise ton identifiant reçu après activation et ton code à 4 chiffres.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <input
+                type="text"
+                placeholder="Identifiant"
+                className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+              />
+
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Code 4 chiffres"
+                className="w-full rounded-2xl border border-[#ddd] bg-[#faf7f0] px-4 py-3 outline-none"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              />
+            </div>
+
+            <button
+              onClick={handleStudentLogin}
+              disabled={loading}
+              className="mt-6 w-full rounded-2xl bg-[#7c9c56] px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
+            >
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </>
+        )}
+
+        {message ? (
+          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
+        ) : null}
       </div>
     </main>
   );
