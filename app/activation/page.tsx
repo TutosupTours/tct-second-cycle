@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function ActivationPage() {
   const [message, setMessage] = useState("Activation en cours...");
@@ -25,6 +26,8 @@ export default function ActivationPage() {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/activate-student`, {
           method: "POST",
           headers: {
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ token }),
