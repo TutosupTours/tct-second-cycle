@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
@@ -27,42 +28,49 @@ const cards = [
     description: "Créer et gérer les sessions d’entraînement.",
     icon: CalendarDays,
     color: "#6a8f4f",
+    href: "/admin/sessions",
   },
   {
     title: "Étudiants",
-    description: "Suivre les inscriptions et comptes activés.",
+    description: "Suivre les comptes étudiants activés.",
     icon: GraduationCap,
     color: "#ef9faa",
+    href: "/admin/students",
   },
   {
     title: "Examinateurs",
     description: "Ajouter, inviter et affecter les examinateurs.",
     icon: Stethoscope,
     color: "#efc24d",
+    href: "/admin/examiners",
   },
   {
     title: "Faculté",
     description: "Gérer l’accès des encadrants facultaires.",
     icon: Building2,
     color: "#243b63",
+    href: "/admin/faculty",
   },
   {
     title: "Stations",
     description: "Créer les stations et scénarios ECOS.",
     icon: ClipboardList,
     color: "#d63b33",
+    href: "/admin/stations",
   },
   {
     title: "Grilles",
     description: "Créer les grilles d’évaluation.",
     icon: FileCheck,
     color: "#8eab60",
+    href: "/admin/grids",
   },
   {
     title: "Affectations",
     description: "Attribuer étudiants, examinateurs et stations.",
     icon: Users,
     color: "#7d6fb2",
+    href: "/admin/assignments",
   },
 ];
 
@@ -128,13 +136,11 @@ export default function AdminPage() {
         </section>
 
         <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Modules admin</h2>
-              <p className="text-sm text-[#6f6a63]">
-                Choisis le module à configurer.
-              </p>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold">Modules admin</h2>
+            <p className="text-sm text-[#6f6a63]">
+              Choisis le module à configurer.
+            </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -154,52 +160,21 @@ export default function AdminPage() {
                   </div>
 
                   <h3 className="mt-5 text-xl font-bold">{card.title}</h3>
+
                   <p className="mt-2 min-h-[48px] text-sm text-[#6f6a63]">
                     {card.description}
                   </p>
 
-                  <button className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-[#d9cbbb] bg-[#faf7f0] px-4 py-3 text-sm font-semibold text-[#4b463f] transition group-hover:bg-[#6a8f4f] group-hover:text-white">
+                  <Link
+                    href={card.href}
+                    className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-[#d9cbbb] bg-[#faf7f0] px-4 py-3 text-sm font-semibold text-[#4b463f] transition group-hover:bg-[#6a8f4f] group-hover:text-white"
+                  >
                     <PlusCircle size={17} />
                     Ouvrir
-                  </button>
+                  </Link>
                 </div>
               );
             })}
-          </div>
-        </section>
-
-        <section className="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold">Prochaines actions</h2>
-
-            <div className="mt-5 space-y-3">
-              <Action text="Créer une première session ECOS" />
-              <Action text="Ajouter les examinateurs" />
-              <Action text="Créer les stations" />
-              <Action text="Construire les grilles d’évaluation" />
-              <Action text="Affecter étudiants et examinateurs" />
-            </div>
-          </div>
-
-          <div className="rounded-[28px] bg-[#6a8f4f] p-6 text-white shadow-sm">
-            <h2 className="text-xl font-bold">Rôle Admin</h2>
-            <p className="mt-3 text-sm text-white/90">
-              L’admin gère tout le cœur métier après validation BR :
-              sessions, stations, grilles, examinateurs, faculté, affectations
-              et suivi global.
-            </p>
-
-            <div className="mt-6 rounded-2xl bg-white/15 p-4 text-sm">
-              <p>
-                <strong>Connecté :</strong> {staff.prenom} {staff.nom}
-              </p>
-              <p>
-                <strong>Identifiant :</strong> {staff.login_id}
-              </p>
-              <p>
-                <strong>Fonction :</strong> {staff.fonction || "Admin"}
-              </p>
-            </div>
           </div>
         </section>
       </div>
@@ -212,14 +187,6 @@ function Stat({ title, value }: { title: string; value: string }) {
     <div className="rounded-[24px] bg-white p-5 shadow-sm">
       <p className="text-sm font-semibold text-[#7b736a]">{title}</p>
       <p className="mt-2 text-3xl font-bold text-[#2f2f2f]">{value}</p>
-    </div>
-  );
-}
-
-function Action({ text }: { text: string }) {
-  return (
-    <div className="rounded-2xl border border-[#eadfd2] bg-[#faf7f0] px-4 py-3 text-sm font-semibold text-[#4b463f]">
-      {text}
     </div>
   );
 }
