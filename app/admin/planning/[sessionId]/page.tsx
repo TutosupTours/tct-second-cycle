@@ -1,200 +1,155 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type Session = {
+type Station = {
   id: string;
-  titre: string;
-  promotion: string;
-  date_session: string;
-  lieu: string | null;
-  capacite: number | null;
-  statut: string;
+  nom: string;
 };
 
-type Registration = {
-  session_id: string;
-  student_login_id: string;
-  student_prenom: string | null;
-  student_nom: string | null;
-  student_email: string | null;
-  student_phone: string | null;
+type Timeslot = {
+  id: string;
+  heure_debut: string;
+  heure_fin: string;
 };
 
-export default function SessionsPage() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+export default function PlanningPage() {
+  const params = useParams();
+  const sessionId = params.sessionId as string;
+
+  const [stations, setStations] = useState<Station[]>([]);
+  const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
+  const [newStation, setNewStation] = useState("");
+  const [heureDebut, setHeureDebut] = useState("");
+  const [heureFin, setHeureFin] = useState("");
 
   useEffect(() => {
-    fetchSessions();
-    fetchRegistrations();
-  }, []);
-
-  async function fetchSessions() {
-    const { data } = await supabase
-      .from("ecos_sessions")
-      .select("*")
-      .order("date_session");
-
-    setSessions((data as Session[]) || []);
-  }
-
-  async function fetchRegistrations() {
-    const { data } = await supabase
-      .from("ecos_session_registrations")
-      .select("*");
-
-    setRegistrations((data as Registration[]) || []);
-  }
-
-  function getStudents(sessionId: string) {
-    return registrations.filter((r) => r.session_id === sessionId);
-  }
-
-  function exportCSV(sessionId: string, titre: string) {
-    const students = getStudents(sessionId);
-
-    if (students.length === 0) {
-      alert("Aucun inscrit à exporter.");
-      return;
+    if (sessionId) {
+      fetchStations();
+      fetchTimeslots();
     }
+  }, [sessionId]);
 
-    const headers = ["Prenom", "Nom", "Identifiant", "Email", "Telephone"];
+  async function fetchStations() {
+    const { data } = await supabase
+      .from("ecos_stations")
+      .select("*")
+      .eq("session_id", sessionId);
 
-    const rows = students.map((s) => [
-      s.student_prenom || "",
-      s.student_nom || "",
-      s.student_login_id || "",
-      s.student_email || "",
-      s.student_phone || "",
-    ]);
+    setStations(data || []);
+  }
 
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replaceAll('"', '""')}"`)
-          .join(",")
-      )
-      .join("\n");
+  async function fetchTimeslots() {
+    const { data } = await supabase
+      .from("ecos_timeslots")
+      .select("*")
+      .eq("session_id", sessionId);
 
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8;",
+    setTimeslots(data || []);
+  }
+
+  async function addStation() {
+    if (!newStation.trim()) return;
+
+    await supabase.from("ecos_stations").insert({
+      session_id: sessionId,
+      nom: newStation.trim(),
     });
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    setNewStation("");
+    fetchStations();
+  }
 
-    link.href = url;
-    link.download = `inscrits-${titre}.csv`;
-    link.click();
+  async function addTimeslot() {
+    if (!heureDebut || !heureFin) return;
 
-    URL.revokeObjectURL(url);
+    await supabase.from("ecos_timeslots").insert({
+      session_id: sessionId,
+      heure_debut: heureDebut,
+      heure_fin: heureFin,
+    });
+
+    setHeureDebut("");
+    setHeureFin("");
+    fetchTimeslots();
   }
 
   return (
     <main className="min-h-screen bg-[#f5f0e5] p-6 text-[#2f2f2f]">
       <div className="mx-auto max-w-5xl">
-        <a href="/admin" className="text-sm font-semibold text-[#6a8f4f]">
-          ← Retour admin
+        <a href="/admin/sessions" className="text-sm font-semibold text-[#6a8f4f]">
+          ← Retour sessions
         </a>
 
-        <h1 className="mt-2 text-3xl font-bold">Sessions ECOS</h1>
+        <h1 className="mt-2 text-3xl font-bold">Planning ECOS</h1>
 
-        <div className="mt-6 rounded-[28px] bg-white p-6 shadow">
-          <div className="space-y-4">
-            {sessions.length === 0 ? (
-              <p className="text-sm text-gray-500">Aucune session créée.</p>
-            ) : (
-              sessions.map((s) => {
-                const students = getStudents(s.id);
-                const count = students.length;
-                const capacite = s.capacite || 0;
+        <section className="mt-6 rounded-2xl bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-bold">Stations</h2>
 
-                return (
-                  <div key={s.id} className="rounded-2xl border p-4">
-                    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                      <div>
-                        <p className="font-bold">{s.titre}</p>
-                        <p className="text-sm text-gray-600">
-                          {s.promotion} • {s.date_session} •{" "}
-                          {s.lieu || "Lieu non renseigné"}
-                        </p>
-                        <p className="text-xs font-semibold text-[#6f6a63]">
-                          {capacite > 0
-                            ? `${count}/${capacite} inscrit(s)`
-                            : `${count} inscrit(s)`}
-                        </p>
-                        <p className="text-xs text-[#6f6a63]">
-                          Statut : {s.statut}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/planning/${s.id}`}
-                          className="rounded-xl bg-purple-600 px-4 py-2 text-white"
-                        >
-                          Planning
-                        </Link>
-
-                        <button
-                          onClick={() =>
-                            setSelectedSession(
-                              selectedSession === s.id ? null : s.id
-                            )
-                          }
-                          className="rounded-xl bg-blue-500 px-4 py-2 text-white"
-                        >
-                          Voir inscrits
-                        </button>
-
-                        <button
-                          onClick={() => exportCSV(s.id, s.titre)}
-                          className="rounded-xl bg-green-600 px-4 py-2 text-white"
-                        >
-                          Export CSV
-                        </button>
-                      </div>
-                    </div>
-
-                    {selectedSession === s.id ? (
-                      <div className="mt-4 rounded-xl bg-[#faf7f0] p-4">
-                        {students.length === 0 ? (
-                          <p className="text-sm text-gray-500">Aucun inscrit</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {students.map((r, i) => (
-                              <div
-                                key={i}
-                                className="grid gap-2 rounded-xl bg-white p-3 text-sm md:grid-cols-4"
-                              >
-                                <span>
-                                  {r.student_prenom || ""} {r.student_nom || ""}
-                                </span>
-                                <span className="text-gray-500">
-                                  {r.student_login_id}
-                                </span>
-                                <span className="text-gray-500">
-                                  {r.student_email || "-"}
-                                </span>
-                                <span className="text-gray-500">
-                                  {r.student_phone || "-"}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })
-            )}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <input
+              placeholder="Nom station"
+              value={newStation}
+              onChange={(e) => setNewStation(e.target.value)}
+              className="rounded-xl border px-4 py-2"
+            />
+            <button
+              onClick={addStation}
+              className="rounded-xl bg-green-600 px-4 py-2 text-white"
+            >
+              Ajouter
+            </button>
           </div>
-        </div>
+
+          {stations.length === 0 ? (
+            <p className="text-sm text-gray-500">Aucune station.</p>
+          ) : (
+            stations.map((s) => (
+              <div key={s.id} className="mb-2 rounded-xl border p-3">
+                {s.nom}
+              </div>
+            ))
+          )}
+        </section>
+
+        <section className="mt-6 rounded-2xl bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-bold">Créneaux</h2>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            <input
+              type="time"
+              value={heureDebut}
+              onChange={(e) => setHeureDebut(e.target.value)}
+              className="rounded-xl border px-4 py-2"
+            />
+
+            <input
+              type="time"
+              value={heureFin}
+              onChange={(e) => setHeureFin(e.target.value)}
+              className="rounded-xl border px-4 py-2"
+            />
+
+            <button
+              onClick={addTimeslot}
+              className="rounded-xl bg-green-600 px-4 py-2 text-white"
+            >
+              Ajouter
+            </button>
+          </div>
+
+          {timeslots.length === 0 ? (
+            <p className="text-sm text-gray-500">Aucun créneau.</p>
+          ) : (
+            timeslots.map((t) => (
+              <div key={t.id} className="mb-2 rounded-xl border p-3">
+                {t.heure_debut} → {t.heure_fin}
+              </div>
+            ))
+          )}
+        </section>
       </div>
     </main>
   );
