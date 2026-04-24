@@ -50,14 +50,9 @@ export function useUser() {
       return;
     }
 
-    const currentUser = session.user;
-    setUser(currentUser);
+    setUser(session.user);
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", currentUser.id)
-      .single();
+    const { data, error } = await supabase.rpc("get_current_profile");
 
     if (error || !data) {
       console.error("Erreur récupération profil:", error);
