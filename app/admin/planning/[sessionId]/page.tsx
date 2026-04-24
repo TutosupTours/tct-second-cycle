@@ -21,6 +21,12 @@ type Registration = {
   student_nom: string | null;
 };
 
+type Assignment = {
+  student_login_id: string;
+  station_id: string;
+  timeslot_id: string;
+};
+
 export default function PlanningPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
@@ -28,6 +34,7 @@ export default function PlanningPage() {
   const [stations, setStations] = useState<Station[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
 
   const [newStation, setNewStation] = useState("");
   const [heureDebut, setHeureDebut] = useState("");
@@ -35,15 +42,14 @@ export default function PlanningPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (sessionId) {
-      fetchAll();
-    }
+    if (sessionId) fetchAll();
   }, [sessionId]);
 
   async function fetchAll() {
     fetchStations();
     fetchTimeslots();
     fetchRegistrations();
+    fetchAssignments();
   }
 
   async function fetchStations() {
@@ -51,7 +57,7 @@ export default function PlanningPage() {
       .from("ecos_stations")
       .select("*")
       .eq("session_id", sessionId)
-      .order("ordre", { ascending: true });
+      .order("ordre");
 
     setStations(data || []);
   }
@@ -61,7 +67,7 @@ export default function PlanningPage() {
       .from("ecos_timeslots")
       .select("*")
       .eq("session_id", sessionId)
-      .order("heure_debut", { ascending: true });
+      .order("heure_debut");
 
     setTimeslots(data || []);
   }
@@ -75,60 +81,45 @@ export default function PlanningPage() {
     setRegistrations(data || []);
   }
 
+  async function fetchAssignments() {
+    const { data } = await supabase
+      .from("ecos_assignments")
+      .select("*")
+      .eq("session_id", sessionId);
+
+    setAssignments(data || []);
+  }
+
   async function addStation() {
     if (!newStation.trim()) return;
 
-    const { error } = await supabase.from("ecos_stations").insert({
+    await supabase.from("ecos_stations").insert({
       session_id: sessionId,
-      nom: newStation.trim(),
+      nom: newStation,
       ordre: stations.length + 1,
     });
 
-    if (error) {
-      setMessage("Erreur station : " + error.message);
-      return;
-    }
-
     setNewStation("");
-    setMessage("Station ajoutée.");
     fetchStations();
   }
 
   async function addTimeslot() {
     if (!heureDebut || !heureFin) return;
 
-    const { error } = await supabase.from("ecos_timeslots").insert({
+    await supabase.from("ecos_timeslots").insert({
       session_id: sessionId,
       heure_debut: heureDebut,
       heure_fin: heureFin,
     });
 
-    if (error) {
-      setMessage("Erreur créneau : " + error.message);
-      return;
-    }
-
     setHeureDebut("");
     setHeureFin("");
-    setMessage("Créneau ajouté.");
     fetchTimeslots();
   }
 
   async function generatePlanning() {
-    setMessage("");
-
-    if (registrations.length === 0) {
-      setMessage("Aucun étudiant inscrit.");
-      return;
-    }
-
-    if (stations.length === 0) {
-      setMessage("Ajoute au moins une station.");
-      return;
-    }
-
-    if (timeslots.length === 0) {
-      setMessage("Ajoute au moins un créneau.");
+    if (!registrations.length || !stations.length || !timeslots.length) {
+      setMessage("Données insuffisantes.");
       return;
     }
 
@@ -137,159 +128,89 @@ export default function PlanningPage() {
       .delete()
       .eq("session_id", sessionId);
 
-    const assignments: {
-      session_id: string;
-      student_login_id: string;
-      station_id: string;
-      timeslot_id: string;
-    }[] = [];
+    const newAssignments: any[] = [];
 
-    registrations.forEach((student, studentIndex) => {
-      timeslots.forEach((timeslot, timeIndex) => {
-        const station = stations[(studentIndex + timeIndex) % stations.length];
+    registrations.forEach((student, i) => {
+      timeslots.forEach((slot, t) => {
+        const station = stations[(i + t) % stations.length];
 
-        assignments.push({
+        newAssignments.push({
           session_id: sessionId,
           student_login_id: student.student_login_id,
           station_id: station.id,
-          timeslot_id: timeslot.id,
+          timeslot_id: slot.id,
         });
       });
     });
 
-    const { error } = await supabase.from("ecos_assignments").insert(assignments);
+    await supabase.from("ecos_assignments").insert(newAssignments);
 
-    if (error) {
-      setMessage("Erreur génération planning : " + error.message);
-      return;
-    }
+    setMessage("Planning généré !");
+    fetchAssignments();
+  }
 
-    setMessage("Planning généré avec succès.");
+  function getStationName(stationId: string) {
+    return stations.find((s) => s.id === stationId)?.nom || "";
+  }
+
+  function getAssignment(studentId: string, timeslotId: string) {
+    const a = assignments.find(
+      (x) =>
+        x.student_login_id === studentId &&
+        x.timeslot_id === timeslotId
+    );
+
+    return a ? getStationName(a.station_id) : "-";
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f0e5] p-6 text-[#2f2f2f]">
-      <div className="mx-auto max-w-5xl">
-        <a href="/admin/sessions" className="text-sm font-semibold text-[#6a8f4f]">
-          ← Retour sessions
-        </a>
+    <main className="min-h-screen bg-[#f5f0e5] p-6">
+      <div className="max-w-6xl mx-auto">
 
-        <h1 className="mt-2 text-3xl font-bold">Planning ECOS</h1>
+        <h1 className="text-3xl font-bold mb-4">Planning ECOS</h1>
 
-        {message ? (
-          <div className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold shadow">
-            {message}
-          </div>
-        ) : null}
+        {message && <p className="mb-4 text-green-600">{message}</p>}
 
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="text-xl font-bold">Résumé</h2>
+        <button
+          onClick={generatePlanning}
+          className="bg-purple-700 text-white px-6 py-3 rounded-xl mb-6"
+        >
+          Générer planning
+        </button>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <Stat label="Étudiants inscrits" value={registrations.length} />
-            <Stat label="Stations" value={stations.length} />
-            <Stat label="Créneaux" value={timeslots.length} />
-          </div>
+        {/* TABLEAU PLANNING */}
+        <div className="bg-white p-6 rounded-2xl shadow overflow-x-auto">
+          <table className="w-full border text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 border">Étudiant</th>
+                {timeslots.map((t) => (
+                  <th key={t.id} className="p-2 border">
+                    {t.heure_debut}
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
-          <button
-            onClick={generatePlanning}
-            className="mt-5 rounded-xl bg-purple-700 px-6 py-3 font-semibold text-white"
-          >
-            Générer planning
-          </button>
+            <tbody>
+              {registrations.map((r) => (
+                <tr key={r.student_login_id}>
+                  <td className="p-2 border font-semibold">
+                    {r.student_prenom} {r.student_nom}
+                  </td>
+
+                  {timeslots.map((t) => (
+                    <td key={t.id} className="p-2 border text-center">
+                      {getAssignment(r.student_login_id, t.id)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-bold">Stations</h2>
-
-          <div className="mb-4 flex flex-wrap gap-2">
-            <input
-              placeholder="Nom station"
-              value={newStation}
-              onChange={(e) => setNewStation(e.target.value)}
-              className="rounded-xl border px-4 py-2"
-            />
-
-            <button
-              onClick={addStation}
-              className="rounded-xl bg-green-600 px-4 py-2 text-white"
-            >
-              Ajouter
-            </button>
-          </div>
-
-          {stations.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucune station.</p>
-          ) : (
-            stations.map((s) => (
-              <div key={s.id} className="mb-2 rounded-xl border p-3">
-                {s.nom}
-              </div>
-            ))
-          )}
-        </section>
-
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-bold">Créneaux</h2>
-
-          <div className="mb-4 flex flex-wrap gap-2">
-            <input
-              type="time"
-              value={heureDebut}
-              onChange={(e) => setHeureDebut(e.target.value)}
-              className="rounded-xl border px-4 py-2"
-            />
-
-            <input
-              type="time"
-              value={heureFin}
-              onChange={(e) => setHeureFin(e.target.value)}
-              className="rounded-xl border px-4 py-2"
-            />
-
-            <button
-              onClick={addTimeslot}
-              className="rounded-xl bg-green-600 px-4 py-2 text-white"
-            >
-              Ajouter
-            </button>
-          </div>
-
-          {timeslots.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucun créneau.</p>
-          ) : (
-            timeslots.map((t) => (
-              <div key={t.id} className="mb-2 rounded-xl border p-3">
-                {t.heure_debut} → {t.heure_fin}
-              </div>
-            ))
-          )}
-        </section>
-
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-bold">Étudiants inscrits</h2>
-
-          {registrations.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucun étudiant inscrit.</p>
-          ) : (
-            registrations.map((r) => (
-              <div key={r.student_login_id} className="mb-2 rounded-xl border p-3">
-                {r.student_prenom || ""} {r.student_nom || ""} —{" "}
-                <span className="text-gray-500">{r.student_login_id}</span>
-              </div>
-            ))
-          )}
-        </section>
       </div>
     </main>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl bg-[#faf7f0] p-4">
-      <p className="text-sm text-gray-600">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
-    </div>
   );
 }
