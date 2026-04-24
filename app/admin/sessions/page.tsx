@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -62,6 +63,7 @@ export default function SessionsPage() {
     }
 
     const headers = ["Prenom", "Nom", "Identifiant", "Email", "Telephone"];
+
     const rows = students.map((s) => [
       s.student_prenom || "",
       s.student_nom || "",
@@ -70,14 +72,13 @@ export default function SessionsPage() {
       s.student_phone || "",
     ]);
 
-    const csv =
-      [headers, ...rows]
-        .map((row) =>
-          row
-            .map((value) => `"${String(value).replaceAll('"', '""')}"`)
-            .join(",")
-        )
-        .join("\n");
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+          .join(",")
+      )
+      .join("\n");
 
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
@@ -104,83 +105,94 @@ export default function SessionsPage() {
 
         <div className="mt-6 rounded-[28px] bg-white p-6 shadow">
           <div className="space-y-4">
-            {sessions.map((s) => {
-              const students = getStudents(s.id);
-              const count = students.length;
-              const capacite = s.capacite || 0;
+            {sessions.length === 0 ? (
+              <p className="text-sm text-gray-500">Aucune session créée.</p>
+            ) : (
+              sessions.map((s) => {
+                const students = getStudents(s.id);
+                const count = students.length;
+                const capacite = s.capacite || 0;
 
-              return (
-                <div key={s.id} className="rounded-2xl border p-4">
-                  <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                    <div>
-                      <p className="font-bold">{s.titre}</p>
-                      <p className="text-sm text-gray-600">
-                        {s.promotion} • {s.date_session} •{" "}
-                        {s.lieu || "Lieu non renseigné"}
-                      </p>
-                      <p className="text-xs font-semibold text-[#6f6a63]">
-                        {capacite > 0
-                          ? `${count}/${capacite} inscrit(s)`
-                          : `${count} inscrit(s)`}
-                      </p>
-                      <p className="text-xs text-[#6f6a63]">
-                        Statut : {s.statut}
-                      </p>
+                return (
+                  <div key={s.id} className="rounded-2xl border p-4">
+                    <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                      <div>
+                        <p className="font-bold">{s.titre}</p>
+                        <p className="text-sm text-gray-600">
+                          {s.promotion} • {s.date_session} •{" "}
+                          {s.lieu || "Lieu non renseigné"}
+                        </p>
+                        <p className="text-xs font-semibold text-[#6f6a63]">
+                          {capacite > 0
+                            ? `${count}/${capacite} inscrit(s)`
+                            : `${count} inscrit(s)`}
+                        </p>
+                        <p className="text-xs text-[#6f6a63]">
+                          Statut : {s.statut}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/admin/planning/${s.id}`}
+                          className="rounded-xl bg-purple-600 px-4 py-2 text-white"
+                        >
+                          Planning
+                        </Link>
+
+                        <button
+                          onClick={() =>
+                            setSelectedSession(
+                              selectedSession === s.id ? null : s.id
+                            )
+                          }
+                          className="rounded-xl bg-blue-500 px-4 py-2 text-white"
+                        >
+                          Voir inscrits
+                        </button>
+
+                        <button
+                          onClick={() => exportCSV(s.id, s.titre)}
+                          className="rounded-xl bg-green-600 px-4 py-2 text-white"
+                        >
+                          Export CSV
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() =>
-                          setSelectedSession(
-                            selectedSession === s.id ? null : s.id
-                          )
-                        }
-                        className="rounded-xl bg-blue-500 px-4 py-2 text-white"
-                      >
-                        Voir inscrits
-                      </button>
-
-                      <button
-                        onClick={() => exportCSV(s.id, s.titre)}
-                        className="rounded-xl bg-green-600 px-4 py-2 text-white"
-                      >
-                        Export CSV
-                      </button>
-                    </div>
+                    {selectedSession === s.id ? (
+                      <div className="mt-4 rounded-xl bg-[#faf7f0] p-4">
+                        {students.length === 0 ? (
+                          <p className="text-sm text-gray-500">Aucun inscrit</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {students.map((r, i) => (
+                              <div
+                                key={i}
+                                className="grid gap-2 rounded-xl bg-white p-3 text-sm md:grid-cols-4"
+                              >
+                                <span>
+                                  {r.student_prenom || ""} {r.student_nom || ""}
+                                </span>
+                                <span className="text-gray-500">
+                                  {r.student_login_id}
+                                </span>
+                                <span className="text-gray-500">
+                                  {r.student_email || "-"}
+                                </span>
+                                <span className="text-gray-500">
+                                  {r.student_phone || "-"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
-
-                  {selectedSession === s.id ? (
-                    <div className="mt-4 rounded-xl bg-[#faf7f0] p-4">
-                      {students.length === 0 ? (
-                        <p className="text-sm text-gray-500">Aucun inscrit</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {students.map((r, i) => (
-                            <div
-                              key={i}
-                              className="grid gap-2 rounded-xl bg-white p-3 text-sm md:grid-cols-4"
-                            >
-                              <span>
-                                {r.student_prenom || ""} {r.student_nom || ""}
-                              </span>
-                              <span className="text-gray-500">
-                                {r.student_login_id}
-                              </span>
-                              <span className="text-gray-500">
-                                {r.student_email || "-"}
-                              </span>
-                              <span className="text-gray-500">
-                                {r.student_phone || "-"}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
