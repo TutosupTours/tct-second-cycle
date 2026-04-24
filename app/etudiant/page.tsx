@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 type Student = {
   prenom: string;
   login_id: string;
+  promotion: string; // 🔥 important
 };
 
 type Session = {
@@ -15,6 +16,7 @@ type Session = {
   lieu: string | null;
   statut: string;
   capacite: number | null;
+  promotion: string; // 🔥 important
 };
 
 type Registration = {
@@ -40,15 +42,16 @@ export default function StudentPage() {
     const parsed = JSON.parse(raw);
     setStudent(parsed);
 
-    fetchSessions();
+    fetchSessions(parsed.promotion); // 🔥 filtre ici
     fetchRegistrations(parsed.login_id);
   }, []);
 
-  async function fetchSessions() {
+  async function fetchSessions(promotion: string) {
     const { data, error } = await supabase
       .from("ecos_sessions")
       .select("*")
       .eq("statut", "published")
+      .eq("promotion", promotion) // 🔥 filtre
       .order("date_session");
 
     if (error) {
@@ -130,25 +133,28 @@ export default function StudentPage() {
   return (
     <main className="min-h-screen bg-[#f5f0e5] p-6 text-[#2f2f2f]">
       <div className="mx-auto max-w-4xl">
+
         <div className="rounded-[28px] bg-white p-6 shadow">
           <h1 className="text-3xl font-bold">Bonjour {student.prenom}</h1>
           <p className="mt-2 text-sm text-[#666]">
-            Bienvenue dans ton espace étudiant ECOS Tours.
+            Promotion : {student.promotion}
           </p>
         </div>
 
-        {message ? (
+        {message && (
           <div className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold shadow">
             {message}
           </div>
-        ) : null}
+        )}
 
         <section className="mt-6 rounded-[28px] bg-white p-6 shadow">
           <h2 className="text-xl font-semibold">Sessions disponibles</h2>
 
           <div className="mt-4 space-y-3">
             {sessions.length === 0 ? (
-              <p className="text-sm text-[#666]">Aucune session disponible.</p>
+              <p className="text-sm text-[#666]">
+                Aucune session disponible pour ta promotion.
+              </p>
             ) : (
               sessions.map((s) => {
                 const isRegistered = myRegistrations.includes(s.id);
@@ -213,6 +219,7 @@ export default function StudentPage() {
         >
           Déconnexion
         </button>
+
       </div>
     </main>
   );
