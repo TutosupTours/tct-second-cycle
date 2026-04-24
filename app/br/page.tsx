@@ -116,10 +116,12 @@ export default function BRPage() {
       .eq("id", requestId);
 
     if (error) {
+      alert("Erreur paiement : " + error.message);
       setMessage("Erreur lors de la validation du paiement.");
       return;
     }
 
+    alert("Paiement marqué comme vérifié.");
     setMessage("Paiement marqué comme vérifié.");
     loadDashboard();
   }
@@ -128,31 +130,48 @@ export default function BRPage() {
     setMessage("");
 
     if (!request.paiement_verifie) {
+      alert("Impossible de valider : paiement non vérifié.");
       setMessage("Impossible de valider : paiement non vérifié.");
       return;
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-inscription`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        request_id: request.id,
-        site_base_url: `${SITE_URL}/activation`,
-      }),
-    });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    const data = await res.json();
+    const token = session?.access_token || SUPABASE_ANON_KEY;
 
-    if (!res.ok || !data.success) {
-      setMessage("Erreur lors de l’envoi du mail d’activation.");
-      return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-inscription`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          request_id: request.id,
+          site_base_url: `${SITE_URL}/activation`,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        console.error("Erreur approve-inscription:", data);
+        alert("Erreur envoi mail : " + JSON.stringify(data));
+        setMessage("Erreur lors de l’envoi du mail d’activation.");
+        return;
+      }
+
+      alert("Mail d’activation envoyé.");
+      setMessage(`Mail d’activation envoyé à ${request.email}.`);
+      loadDashboard();
+    } catch (error) {
+      console.error(error);
+      alert("Erreur réseau ou serveur.");
+      setMessage("Erreur réseau ou serveur.");
     }
-
-    setMessage(`Mail d’activation envoyé à ${request.email}.`);
-    loadDashboard();
   }
 
   async function resendActivation(request: RequestItem) {
@@ -170,10 +189,12 @@ export default function BRPage() {
       .eq("id", requestId);
 
     if (error) {
+      alert("Erreur refus : " + error.message);
       setMessage("Erreur lors du refus de la demande.");
       return;
     }
 
+    alert("Demande refusée.");
     setMessage("Demande refusée.");
     loadDashboard();
   }
@@ -220,31 +241,11 @@ export default function BRPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-5">
-        <StatCard
-          title="En attente"
-          value={String(pendingCount)}
-          subtitle="Demandes à vérifier"
-        />
-        <StatCard
-          title="Paiement OK"
-          value={String(paymentVerifiedCount)}
-          subtitle="Prêtes à valider"
-        />
-        <StatCard
-          title="Activation envoyée"
-          value={String(activationSentCount)}
-          subtitle="Mail envoyé"
-        />
-        <StatCard
-          title="Actifs"
-          value={String(activeCount)}
-          subtitle="Comptes activés"
-        />
-        <StatCard
-          title="Refusés"
-          value={String(rejectedCount)}
-          subtitle="Demandes rejetées"
-        />
+        <StatCard title="En attente" value={String(pendingCount)} subtitle="Demandes à vérifier" />
+        <StatCard title="Paiement OK" value={String(paymentVerifiedCount)} subtitle="Prêtes à valider" />
+        <StatCard title="Activation envoyée" value={String(activationSentCount)} subtitle="Mail envoyé" />
+        <StatCard title="Actifs" value={String(activeCount)} subtitle="Comptes activés" />
+        <StatCard title="Refusés" value={String(rejectedCount)} subtitle="Demandes rejetées" />
       </div>
 
       <Panel title="Demandes d’inscription" rightText={`${filteredRequests.length} demande(s)`}>
@@ -294,8 +295,7 @@ export default function BRPage() {
                       {r.parcours || "Parcours non renseigné"}
                     </p>
                     <p className="text-xs text-[#a2978a]">
-                      Demande créée le{" "}
-                      {new Date(r.created_at).toLocaleString("fr-FR")}
+                      Demande créée le {new Date(r.created_at).toLocaleString("fr-FR")}
                     </p>
                   </div>
 
@@ -372,10 +372,7 @@ export default function BRPage() {
         ) : (
           <div className="space-y-2">
             {sessions.slice(0, 4).map((s) => (
-              <div
-                key={s.id}
-                className="rounded-xl border border-[#eadfd2] bg-white p-3"
-              >
+              <div key={s.id} className="rounded-xl border border-[#eadfd2] bg-white p-3">
                 <p className="text-sm font-semibold text-[#3f3a32]">{s.title}</p>
                 <p className="text-xs text-[#8d8172]">
                   {new Date(s.starts_at).toLocaleString("fr-FR")}
@@ -417,9 +414,7 @@ function StatusBadge({ statut }: { statut: string }) {
       : "bg-[#f7f1e8] text-[#7b6d5d]";
 
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${className}`}
-    >
+    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${className}`}>
       {label}
     </span>
   );
