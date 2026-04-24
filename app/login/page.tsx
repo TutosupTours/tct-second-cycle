@@ -57,12 +57,12 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: loginData, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
 
-    if (error) {
+    if (error || !loginData.user) {
       setMessage("Erreur de connexion. Vérifie ton email et ton mot de passe.");
       setLoading(false);
       return;
@@ -71,10 +71,13 @@ export default function LoginPage() {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
+      .eq("id", loginData.user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error("Erreur profil:", profileError);
       setMessage("Profil introuvable. Contacte l’administrateur.");
+      await supabase.auth.signOut();
       setLoading(false);
       return;
     }
@@ -122,7 +125,9 @@ export default function LoginPage() {
           />
         </div>
 
-        {message ? <p className="mt-4 text-sm font-medium text-red-600">{message}</p> : null}
+        {message ? (
+          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
+        ) : null}
 
         <button
           onClick={handleLogin}
