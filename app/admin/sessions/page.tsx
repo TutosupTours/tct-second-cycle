@@ -9,7 +9,6 @@ type Session = {
   promotion: string;
   date_session: string;
   lieu: string | null;
-  statut: string;
 };
 
 type Registration = {
@@ -53,13 +52,37 @@ export default function SessionsPage() {
     return registrations.filter((r) => r.session_id === sessionId);
   }
 
+  function exportCSV(sessionId: string, titre: string) {
+    const students = getStudents(sessionId);
+
+    if (students.length === 0) {
+      alert("Aucun inscrit à exporter.");
+      return;
+    }
+
+    const headers = ["Prenom", "Identifiant"];
+    const rows = students.map((s) => [s.student_prenom, s.student_login_id]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers, ...rows].map((e) => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `inscrits-${titre}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f0e5] p-6">
       <div className="max-w-5xl mx-auto">
 
         <h1 className="text-3xl font-bold mb-6">Sessions ECOS</h1>
 
-        {/* LISTE */}
         <div className="bg-white p-6 rounded-2xl shadow">
           <div className="space-y-4">
             {sessions.map((s) => (
@@ -75,19 +98,27 @@ export default function SessionsPage() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() =>
-                      setSelectedSession(
-                        selectedSession === s.id ? null : s.id
-                      )
-                    }
-                    className="bg-blue-500 text-white px-4 py-2 rounded-xl"
-                  >
-                    Voir inscrits
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        setSelectedSession(
+                          selectedSession === s.id ? null : s.id
+                        )
+                      }
+                      className="bg-blue-500 text-white px-4 py-2 rounded-xl"
+                    >
+                      Voir inscrits
+                    </button>
+
+                    <button
+                      onClick={() => exportCSV(s.id, s.titre)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-xl"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
                 </div>
 
-                {/* LISTE ETUDIANTS */}
                 {selectedSession === s.id && (
                   <div className="mt-4 bg-[#faf7f0] p-4 rounded-xl">
                     {getStudents(s.id).length === 0 ? (
@@ -97,10 +128,7 @@ export default function SessionsPage() {
                     ) : (
                       <div className="space-y-2">
                         {getStudents(s.id).map((r, i) => (
-                          <div
-                            key={i}
-                            className="flex justify-between text-sm"
-                          >
+                          <div key={i} className="flex justify-between text-sm">
                             <span>{r.student_prenom}</span>
                             <span className="text-gray-500">
                               {r.student_login_id}
