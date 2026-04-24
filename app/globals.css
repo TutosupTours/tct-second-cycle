@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
 }
@@ -8,16 +12,21 @@ html,
 body {
   padding: 0;
   margin: 0;
+  min-height: 100%;
   font-family: 'Inter', sans-serif;
   background: #fbf1df;
   color: #2c2f4a;
 }
 
+body {
+  overflow-x: hidden;
+}
+
+/* Correction lisibilité sans casser le design */
 input,
 select,
 textarea {
   color: #2c2f4a !important;
-  background-color: #ffffff !important;
   caret-color: #2c2f4a !important;
 }
 
@@ -27,15 +36,26 @@ textarea::placeholder {
   opacity: 1 !important;
 }
 
-a {
-  color: inherit;
-}
-
-button,
-a {
+a,
+button {
   font-family: inherit;
 }
 
+/* On ne force PAS tous les liens, pour garder les boutons colorés */
+a {
+  text-decoration: none;
+}
+
+/* Blanc uniquement quand il est explicitement demandé */
 .text-white {
   color: #ffffff !important;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d8cfc5;
+  border-radius: 999px;
 }
