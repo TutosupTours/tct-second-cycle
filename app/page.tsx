@@ -8,6 +8,7 @@ import {
   CalendarDays,
   TrendingUp,
   MessageCircle,
+  Sparkles,
 } from "lucide-react";
 
 const roles = [
@@ -19,10 +20,10 @@ const roles = [
 ];
 
 const missions = [
-  { icon: CalendarDays, color: "#df7f7a", title: "Sessions & Inscriptions", text: "Consultez les sessions disponibles et inscrivez-vous facilement." },
-  { icon: Users, color: "#8eab60", title: "Évaluations", text: "Suivez vos évaluations et vos progrès." },
-  { icon: TrendingUp, color: "#efaaa5", title: "Suivi personnalisé", text: "Retrouvez votre parcours et vos résultats." },
-  { icon: MessageCircle, color: "#9db965", title: "Accompagnement", text: "Accédez aux ressources et conseils." },
+  { icon: CalendarDays, color: "#df7f7a", title: "Sessions & inscriptions", text: "Organisation fluide des sessions ECOS et gestion des inscriptions." },
+  { icon: Users, color: "#8eab60", title: "Évaluations", text: "Grilles, retours personnalisés et suivi des progrès." },
+  { icon: TrendingUp, color: "#efaaa5", title: "Suivi personnalisé", text: "Parcours étudiant, présence, résultats et progression." },
+  { icon: MessageCircle, color: "#9db965", title: "Accompagnement", text: "Un outil pensé pour soutenir les externes du D2 au D4." },
 ];
 
 export default function HomePage() {
@@ -31,138 +32,148 @@ export default function HomePage() {
       <Decor />
 
       <section className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 py-8 lg:px-10">
-        <header className="mx-auto flex max-w-4xl flex-col items-center text-center">
-          <div className="mb-4 flex h-32 w-32 animate-[float_5s_ease-in-out_infinite] items-center justify-center rounded-full bg-white shadow-2xl ring-8 ring-white/50 md:h-40 md:w-40">
-            <img
-              src="/logo-tct.png"
-              alt="Logo TCT"
-              className="h-24 w-24 object-contain md:h-30 md:w-30"
-            />
+        <header className="mx-auto flex max-w-5xl flex-col items-center text-center">
+          <div className="mb-5 flex h-36 w-36 animate-[float_5s_ease-in-out_infinite] items-center justify-center rounded-full bg-white shadow-[0_25px_70px_rgba(0,0,0,0.16)] ring-8 ring-white/60 md:h-44 md:w-44">
+            <img src="/logo-tct.png" alt="Logo TCT" className="h-28 w-28 object-contain md:h-36 md:w-36" />
           </div>
 
-          <p className="text-xl font-bold tracking-[0.22em] text-[#6b9159] md:text-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-5 py-2 text-sm font-bold text-[#6b9159] shadow-sm">
+            <Sparkles className="h-4 w-4" />
+            Plateforme ECOS · Second Cycle
+          </div>
+
+          <p className="mt-5 text-2xl font-black tracking-[0.22em] text-[#6b9159] md:text-4xl">
             PÔLE 2ND CYCLE
           </p>
 
-          <h1 className="mt-2 text-5xl font-semibold italic text-[#5f8950] md:text-7xl">
+          <h1 className="mt-2 text-6xl font-semibold italic leading-none text-[#5f8950] md:text-8xl">
             Bienvenue
           </h1>
 
-          <p className="mt-4 text-lg leading-snug md:text-2xl">
+          <p className="mt-5 max-w-3xl text-xl leading-snug md:text-3xl">
             Plateforme de gestion des ECOS
             <br />
             et de l’accompagnement des externes
           </p>
         </header>
 
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[1.07fr_0.93fr]">
           <div className="flex flex-col items-center lg:items-start">
-            <div className="w-full max-w-xl overflow-hidden rounded-[42px] border-8 border-white shadow-2xl transition duration-500 hover:-translate-y-1 hover:scale-[1.02]">
-              <img
-                src="/photo-equipe.jpg"
-                alt="Équipe tutorat"
-                className="h-[300px] w-full object-cover md:h-[380px]"
-              />
+            <div className="relative w-full max-w-xl">
+              <div className="absolute -inset-3 rounded-[48px] bg-gradient-to-br from-[#cf332b]/25 via-white to-[#6b9159]/25 blur-xl" />
+              <div className="relative overflow-hidden rounded-[44px] border-8 border-white bg-white shadow-[0_28px_80px_rgba(0,0,0,0.18)] transition duration-500 hover:-translate-y-1 hover:scale-[1.015]">
+                <img
+                  src="/photo-equipe.jpg"
+                  alt="Équipe tutorat"
+                  className="h-[360px] w-full object-cover md:h-[430px]"
+                />
+              </div>
             </div>
 
-            <div className="mt-8 w-full max-w-xl rounded-[34px] border border-[#eadccf] bg-white/95 p-7 shadow-2xl backdrop-blur">
-              <h2 className="mb-3 text-2xl font-bold text-[#6b9159]">
-                🌿 NOTRE MISSION
-              </h2>
+            <div className="relative mt-9 w-full max-w-xl">
+              <div className="absolute -inset-2 rounded-[38px] bg-white/50 blur" />
+              <div className="relative rounded-[36px] border border-[#eadccf] bg-white/95 p-7 shadow-[0_22px_60px_rgba(0,0,0,0.12)] backdrop-blur">
+                <h2 className="mb-3 text-2xl font-black text-[#6b9159]">
+                  🌿 Notre mission
+                </h2>
 
-              <p className="mb-5 text-lg">
-                Accompagner les externes du <strong>D2 au D4</strong>
-                <br />
-                vers la réussite aux ECOS.
-              </p>
+                <p className="mb-6 text-lg leading-snug">
+                  Accompagner les externes du <strong>D2 au D4</strong> vers la réussite aux ECOS.
+                </p>
 
-              <div className="space-y-4">
-                {missions.map((mission) => (
-                  <Mission key={mission.title} {...mission} />
-                ))}
+                <div className="space-y-4">
+                  {missions.map((m) => (
+                    <Mission key={m.title} {...m} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-start justify-center lg:pt-10">
-            <div className="w-full max-w-[470px] rounded-[34px] border border-white/70 bg-white/95 p-8 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur transition duration-500 hover:-translate-y-1">
-              <div className="mb-7 flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#668b4e] text-white shadow-lg">
-                  <Users className="h-8 w-8" />
+          <div className="flex items-start justify-center lg:pt-12">
+            <div className="relative w-full max-w-[480px]">
+              <div className="absolute -inset-3 rounded-[42px] bg-gradient-to-br from-[#668b4e]/25 via-white to-[#ef9faa]/25 blur-xl" />
+
+              <div className="relative rounded-[38px] border border-white/80 bg-white/95 p-8 shadow-[0_30px_85px_rgba(0,0,0,0.18)] backdrop-blur">
+                <div className="mb-7 flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#668b4e] text-white shadow-xl">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-[#2c2f4a]">Connexion</h2>
+                    <p className="text-sm text-[#8b8177]">Choisissez votre espace</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-3xl font-semibold text-[#2c2f4a]">
-                    Connexion
-                  </h2>
-                  <p className="text-sm text-[#8b8177]">Choisissez votre espace</p>
+
+                <div className="space-y-4">
+                  <input
+                    disabled
+                    placeholder="Identifiant"
+                    className="w-full rounded-2xl border border-[#e7dfd4] bg-[#fffaf4] px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
+                  />
+                  <input
+                    disabled
+                    placeholder="Mot de passe"
+                    className="w-full rounded-2xl border border-[#e7dfd4] bg-[#fffaf4] px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
+                  />
+
+                  <Link
+                    href="/login?role=etudiant"
+                    className="block rounded-2xl bg-[#668b4e] py-4 text-center font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                    style={{ color: "#ffffff" }}
+                  >
+                    Se connecter
+                  </Link>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <input
-                  disabled
-                  placeholder="Identifiant"
-                  className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
-                />
-                <input
-                  disabled
-                  placeholder="Mot de passe"
-                  className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#9a8f85]"
-                />
+                <div className="my-7 flex items-center gap-3 text-[#9c9187]">
+                  <div className="h-px flex-1 bg-[#e5ddd2]" />
+                  <span className="whitespace-nowrap text-sm">Plateforme pour</span>
+                  <div className="h-px flex-1 bg-[#e5ddd2]" />
+                </div>
 
-                <Link
-                  href="/login?role=etudiant"
-                  className="block rounded-xl bg-[#668b4e] py-4 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
-                >
-                  Se connecter
-                </Link>
-              </div>
+                <div className="grid grid-cols-5 gap-3 text-center text-sm">
+                  {roles.map((r) => {
+                    const Icon = r.icon;
+                    return (
+                      <Link key={r.label} href={r.href} className="group">
+                        <div
+                          className="mx-auto flex h-13 w-13 items-center justify-center rounded-full text-white shadow-md transition duration-300 group-hover:-translate-y-1 group-hover:scale-110 group-hover:shadow-xl"
+                          style={{ backgroundColor: r.color, color: "#ffffff" }}
+                        >
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <p className="mt-2 text-xs font-bold text-[#2c2f4a]">
+                          {r.label}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
 
-              <div className="my-7 flex items-center gap-3 text-[#9c9187]">
-                <div className="h-px flex-1 bg-[#e5ddd2]" />
-                <span className="whitespace-nowrap text-sm">Plateforme pour</span>
-                <div className="h-px flex-1 bg-[#e5ddd2]" />
-              </div>
+                <div className="mt-8 flex flex-col items-center gap-3">
+                  <Link
+                    href="/activation"
+                    className="rounded-full border border-[#cfe3bf] bg-[#edf5e6] px-5 py-2 text-sm font-black shadow-sm transition hover:scale-105 hover:shadow-md"
+                    style={{ color: "#2f4d1f" }}
+                  >
+                    Activer mon compte étudiant
+                  </Link>
 
-              <div className="grid grid-cols-5 gap-3 text-center text-sm">
-                {roles.map((role) => {
-                  const Icon = role.icon;
-                  return (
-                    <Link key={role.label} href={role.href} className="group">
-                      <div
-                        className="mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md transition duration-300 group-hover:-translate-y-1 group-hover:scale-110 group-hover:shadow-xl"
-                        style={{ backgroundColor: role.color }}
-                      >
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <p className="mt-2 text-xs font-medium text-[#2c2f4a]">
-                        {role.label}
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <div className="mt-7 flex flex-col items-center gap-3 text-center">
-                <Link
-                  href="/activation"
-                  className="inline-block rounded-full bg-[#edf5e6] px-5 py-2 text-sm font-bold text-[#4f7338] underline"
-                >
-                  Activer mon compte étudiant
-                </Link>
-
-                <Link
-                  href="/signup"
-                  className="inline-block animate-pulse rounded-full bg-[#cf332b] px-5 py-3 text-sm font-bold text-white shadow-lg"
-                >
-                  Demande d’inscription
-                </Link>
+                  <Link
+                    href="/signup"
+                    className="rounded-full px-5 py-3 text-sm font-black shadow-lg transition hover:scale-105 hover:shadow-xl animate-pulse"
+                    style={{ backgroundColor: "#cf332b", color: "#ffffff" }}
+                  >
+                    Demande d’inscription
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-10 pb-8 text-center text-xl italic text-[#6b9159]">
+        <p className="mt-12 pb-8 text-center text-xl italic text-[#6b9159]">
           Ensemble, vers la réussite <span className="text-[#cf3a33]">♥</span>
         </p>
       </section>
@@ -175,15 +186,12 @@ function Mission({ icon: Icon, color, title, text }: any) {
     <div className="group flex gap-4 rounded-2xl p-2 transition hover:bg-[#fbf1df]">
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition group-hover:scale-110"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, color: "#ffffff" }}
       >
         <Icon className="h-6 w-6" />
       </div>
-
       <div>
-        <p className="font-semibold" style={{ color }}>
-          {title}
-        </p>
+        <p className="font-black" style={{ color }}>{title}</p>
         <p className="text-sm leading-snug text-[#4d4945]">{text}</p>
       </div>
     </div>
