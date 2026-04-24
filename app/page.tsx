@@ -19,30 +19,10 @@ const roles = [
 ];
 
 const missions = [
-  {
-    icon: CalendarDays,
-    color: "#df7f7a",
-    title: "Sessions & Inscriptions",
-    text: "Consultez les sessions disponibles et inscrivez-vous facilement.",
-  },
-  {
-    icon: Users,
-    color: "#8eab60",
-    title: "Évaluations",
-    text: "Suivez vos évaluations et vos progrès.",
-  },
-  {
-    icon: TrendingUp,
-    color: "#efaaa5",
-    title: "Suivi personnalisé",
-    text: "Retrouvez votre parcours et vos résultats.",
-  },
-  {
-    icon: MessageCircle,
-    color: "#9db965",
-    title: "Accompagnement",
-    text: "Accédez aux ressources et conseils.",
-  },
+  { icon: CalendarDays, color: "#df7f7a", title: "Sessions & Inscriptions", text: "Consultez les sessions disponibles et inscrivez-vous facilement." },
+  { icon: Users, color: "#8eab60", title: "Évaluations", text: "Suivez vos évaluations et vos progrès." },
+  { icon: TrendingUp, color: "#efaaa5", title: "Suivi personnalisé", text: "Retrouvez votre parcours et vos résultats." },
+  { icon: MessageCircle, color: "#9db965", title: "Accompagnement", text: "Accédez aux ressources et conseils." },
 ];
 
 export default function HomePage() {
@@ -107,27 +87,38 @@ export default function HomePage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#668b4e] text-white shadow-lg">
                 <Users className="h-8 w-8" />
               </div>
+
               <div>
-                <h2 className="text-3xl font-semibold">Connexion</h2>
-                <p className="text-sm text-[#8b8177]">Choisissez votre espace</p>
+                <h2 className="text-3xl font-semibold text-[#2c2f4a]">
+                  Connexion
+                </h2>
+                <p className="text-sm text-[#8b8177]">
+                  Choisissez votre espace
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <input
                 disabled
+                value=""
+                aria-label="Identifiant"
                 placeholder="Identifiant"
-                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a]"
+                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#8b8177]"
               />
+
               <input
                 disabled
+                value=""
+                aria-label="Mot de passe"
                 placeholder="Mot de passe"
-                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a]"
+                className="w-full rounded-xl border border-[#e7dfd4] bg-white px-4 py-4 text-[#2c2f4a] placeholder:text-[#8b8177]"
               />
 
               <Link
                 href="/login?role=etudiant"
-                className="block rounded-xl bg-[#668b4e] py-4 text-center font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                className="block rounded-xl bg-[#668b4e] py-4 text-center font-semibold shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ color: "#ffffff" }}
               >
                 Se connecter
               </Link>
@@ -135,21 +126,25 @@ export default function HomePage() {
 
             <div className="my-7 flex items-center gap-3 text-[#9c9187]">
               <div className="h-px flex-1 bg-[#e5ddd2]" />
-              <span className="whitespace-nowrap text-sm">Plateforme pour</span>
+              <span className="whitespace-nowrap text-sm">
+                Plateforme pour
+              </span>
               <div className="h-px flex-1 bg-[#e5ddd2]" />
             </div>
 
             <div className="grid grid-cols-5 gap-3 text-center text-sm">
               {roles.map((role) => {
                 const Icon = role.icon;
+
                 return (
                   <Link key={role.label} href={role.href} className="group">
                     <div
                       className="mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md transition duration-300 group-hover:-translate-y-1 group-hover:scale-110 group-hover:shadow-xl"
-                      style={{ backgroundColor: role.color }}
+                      style={{ backgroundColor: role.color, color: "#ffffff" }}
                     >
                       <Icon className="h-6 w-6" />
                     </div>
+
                     <p className="mt-2 text-xs font-medium text-[#2c2f4a]">
                       {role.label}
                     </p>
@@ -158,9 +153,21 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="mt-7 text-center">
-              <Link href="/activation" className="text-sm font-medium text-[#668b4e] underline">
+            <div className="mt-7 flex flex-col items-center gap-3 text-center">
+              <Link
+                href="/activation"
+                className="rounded-full border border-[#cfe3bf] bg-[#edf5e6] px-5 py-2 text-sm font-bold shadow-sm transition hover:scale-105 hover:shadow-md"
+                style={{ color: "#2f4d1f" }}
+              >
                 Activer mon compte étudiant
+              </Link>
+
+              <Link
+                href="/signup"
+                className="rounded-full px-5 py-3 text-sm font-bold shadow-lg animate-pulse transition hover:scale-105 hover:shadow-xl"
+                style={{ backgroundColor: "#cf332b", color: "#ffffff" }}
+              >
+                Demande d’inscription
               </Link>
             </div>
           </div>
@@ -179,7 +186,7 @@ function Mission({ icon: Icon, color, title, text }: any) {
     <div className="group flex gap-4 rounded-2xl p-2 transition hover:bg-[#fbf1df]">
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition group-hover:scale-110"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, color: "#ffffff" }}
       >
         <Icon className="h-6 w-6" />
       </div>
