@@ -108,7 +108,7 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none placeholder:text-[#9a8f85]"
+            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -116,15 +116,13 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Mot de passe"
-            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none placeholder:text-[#9a8f85]"
+            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        {message ? (
-          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
-        ) : null}
+        {message ? <p className="mt-4 text-sm font-medium text-red-600">{message}</p> : null}
 
         <button
           onClick={handleLogin}
@@ -135,8 +133,14 @@ export default function LoginPage() {
           {loading ? "Connexion..." : "Se connecter"}
         </button>
 
-        <div className="mt-6 text-center">
-          <a href="/" className="text-sm font-medium text-[#2c2f4a] underline">
+        <div className="mt-6 space-y-2 text-center">
+          <a href="/activation" className="block text-sm font-medium text-[#668b4e] underline">
+            Activer mon compte étudiant
+          </a>
+          <a href="/signup" className="block text-sm font-medium text-[#2c2f4a] underline">
+            Faire une demande d’inscription
+          </a>
+          <a href="/" className="block text-sm text-[#8b8177] underline">
             Retour accueil
           </a>
         </div>
