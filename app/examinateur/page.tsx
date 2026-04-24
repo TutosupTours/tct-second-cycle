@@ -1,254 +1,350 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import { useEffect, useMemo, useState } from "react";
-import {
-  CheckSquare,
-  ClipboardList,
-  FileText,
-  LayoutDashboard,
-  PlayCircle,
-  UserCircle2,
-  Clock3,
-} from "lucide-react";
-import { useUser } from "@/lib/useUser";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import DashboardShell, {
-  DashboardTitle,
-  MiniAction,
-  Panel,
-  StatCard,
-} from "@/components/dashboard-shell";
 
-type SessionItem = {
-  id: string;
-  title: string;
-  starts_at: string;
-  location: string;
-  program: string;
-  level: string;
+type Staff = {
+  login_id: string;
+  prenom: string;
+  nom: string;
+  role: string;
 };
 
-type StationAssignment = {
+type Assignment = {
   id: string;
   session_id: string;
-  examiner_role_code: string;
-  planned_hours: number | null;
+  student_login_id: string;
+  station_id: string;
+  timeslot_id: string;
+  examiner_login_id: string | null;
+  examiner_name: string | null;
 };
 
-type Attendance = {
-  session_id: string;
-  student_profile_id: string;
-  status: string;
-};
-
-type Student = {
+type Station = {
   id: string;
-  full_name: string;
-  email: string;
+  nom: string;
 };
 
-export default function ExaminateurPage() {
-  const { user, profile, loading } = useUser();
+type Timeslot = {
+  id: string;
+  heure_debut: string;
+  heure_fin: string;
+};
 
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [assignments, setAssignments] = useState<StationAssignment[]>([]);
-  const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [pageLoading, setPageLoading] = useState(true);
+type Registration = {
+  student_login_id: string;
+  student_prenom: string | null;
+  student_nom: string | null;
+};
+
+type Evaluation = {
+  score_global: string;
+  communication: string;
+  raisonnement: string;
+  technique: string;
+  commentaire: string;
+};
+
+export default function ExaminerPage() {
+  const [staff, setStaff] = useState<Staff | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [stations, setStations] = useState<Station[]>([]);
+  const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [selected, setSelected] = useState<Assignment | null>(null);
+  const [message, setMessage] = useState("");
+
+  const [evaluation, setEvaluation] = useState<Evaluation>({
+    score_global: "",
+    communication: "",
+    raisonnement: "",
+    technique: "",
+    commentaire: "",
+  });
 
   useEffect(() => {
-    if (!loading && !user) {
+    const raw = localStorage.getItem("staff_session");
+
+    if (!raw) {
       window.location.href = "/login?role=examinateur";
       return;
     }
 
-    if (!loading && user && profile?.role !== "examiner") {
+    const parsed = JSON.parse(raw);
+
+    if (parsed.role !== "examinateur") {
       window.location.href = "/";
       return;
     }
 
-    if (user && profile?.role === "examiner") {
-      loadDashboard();
-    }
-  }, [user, profile, loading]);
+    setStaff(parsed);
+    loadData(parsed.login_id);
+  }, []);
 
-  useEffect(() => {
-    if (!selectedSessionId) return;
-
-    loadAttendance(selectedSessionId);
-
-    const channel = supabase
-      .channel(`examiner-attendance-${selectedSessionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "session_attendance",
-          filter: `session_id=eq.${selectedSessionId}`,
-        },
-        () => loadAttendance(selectedSessionId)
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedSessionId]);
-
-  async function loadDashboard() {
-    setPageLoading(true);
-
-    const [assignmentsRes, sessionsRes, studentsRes] = await Promise.all([
-      supabase
-        .from("station_examiner_assignments")
-        .select("*")
-        .eq("examiner_profile_id", user.id),
-      supabase.from("sessions").select("id, title, starts_at, location, program, level"),
-      supabase.from("profiles").select("id, full_name, email").eq("role", "student"),
-    ]);
-
-    if (!assignmentsRes.error) {
-      const loadedAssignments = (assignmentsRes.data as StationAssignment[]) || [];
-      setAssignments(loadedAssignments);
-
-      if (loadedAssignments[0]) {
-        setSelectedSessionId(loadedAssignments[0].session_id);
-      }
-    }
-
-    if (!sessionsRes.error) setSessions((sessionsRes.data as SessionItem[]) || []);
-    if (!studentsRes.error) setStudents((studentsRes.data as Student[]) || []);
-
-    setPageLoading(false);
-  }
-
-  async function loadAttendance(sessionId: string) {
-    const { data } = await supabase
-      .from("session_attendance")
+  async function loadData(examinerLoginId: string) {
+    const { data: ass } = await supabase
+      .from("ecos_assignments")
       .select("*")
-      .eq("session_id", sessionId);
+      .eq("examiner_login_id", examinerLoginId);
 
-    setAttendance((data as Attendance[]) || []);
+    setAssignments((ass as Assignment[]) || []);
+
+    const sessionIds = Array.from(new Set((ass || []).map((a: any) => a.session_id)));
+
+    if (sessionIds.length === 0) return;
+
+    const { data: st } = await supabase
+      .from("ecos_stations")
+      .select("*")
+      .in("session_id", sessionIds);
+
+    const { data: ts } = await supabase
+      .from("ecos_timeslots")
+      .select("*")
+      .in("session_id", sessionIds);
+
+    const { data: regs } = await supabase
+      .from("ecos_session_registrations")
+      .select("*")
+      .in("session_id", sessionIds);
+
+    setStations((st as Station[]) || []);
+    setTimeslots((ts as Timeslot[]) || []);
+    setRegistrations((regs as Registration[]) || []);
   }
 
-  const assignedSessionIds = Array.from(new Set(assignments.map((a) => a.session_id)));
+  function stationName(id: string) {
+    return stations.find((s) => s.id === id)?.nom || "Station";
+  }
 
-  const assignedSessions = sessions.filter((s) => assignedSessionIds.includes(s.id));
+  function timeslotLabel(id: string) {
+    const t = timeslots.find((x) => x.id === id);
+    return t ? `${t.heure_debut} - ${t.heure_fin}` : "";
+  }
 
-  const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+  function studentName(loginId: string) {
+    const r = registrations.find((x) => x.student_login_id === loginId);
+    return r ? `${r.student_prenom || ""} ${r.student_nom || ""}` : loginId;
+  }
 
-  const presentStudents = useMemo(() => {
-    const presentIds = attendance
-      .filter((a) => a.status === "present" || a.status === "late")
-      .map((a) => a.student_profile_id);
+  async function openEvaluation(a: Assignment) {
+    setSelected(a);
+    setMessage("");
 
-    return students.filter((s) => presentIds.includes(s.id));
-  }, [attendance, students]);
+    const { data } = await supabase
+      .from("ecos_evaluations")
+      .select("*")
+      .eq("session_id", a.session_id)
+      .eq("station_id", a.station_id)
+      .eq("timeslot_id", a.timeslot_id)
+      .eq("student_login_id", a.student_login_id)
+      .maybeSingle();
 
-  const absentStudents = useMemo(() => {
-    const absentIds = attendance
-      .filter((a) => a.status === "absent")
-      .map((a) => a.student_profile_id);
+    if (data) {
+      setEvaluation({
+        score_global: data.score_global?.toString() || "",
+        communication: data.communication?.toString() || "",
+        raisonnement: data.raisonnement?.toString() || "",
+        technique: data.technique?.toString() || "",
+        commentaire: data.commentaire || "",
+      });
+    } else {
+      setEvaluation({
+        score_global: "",
+        communication: "",
+        raisonnement: "",
+        technique: "",
+        commentaire: "",
+      });
+    }
+  }
 
-    return students.filter((s) => absentIds.includes(s.id));
-  }, [attendance, students]);
+  async function saveEvaluation() {
+    if (!selected || !staff) return;
 
-  const totalPlannedHours = assignments.reduce(
-    (sum, item) => sum + Number(item.planned_hours || 0),
-    0
-  );
+    const payload = {
+      session_id: selected.session_id,
+      station_id: selected.station_id,
+      timeslot_id: selected.timeslot_id,
+      student_login_id: selected.student_login_id,
+      examiner_login_id: staff.login_id,
+      examiner_name: `${staff.prenom} ${staff.nom}`,
+      score_global: evaluation.score_global ? Number(evaluation.score_global) : null,
+      communication: evaluation.communication ? Number(evaluation.communication) : null,
+      raisonnement: evaluation.raisonnement ? Number(evaluation.raisonnement) : null,
+      technique: evaluation.technique ? Number(evaluation.technique) : null,
+      commentaire: evaluation.commentaire || null,
+      updated_at: new Date().toISOString(),
+    };
 
-  if (loading || pageLoading) return <main className="p-10">Chargement...</main>;
-  if (!user || !profile || profile.role !== "examiner") return <main className="p-10">Redirection...</main>;
+    const { error } = await supabase
+      .from("ecos_evaluations")
+      .upsert(payload, {
+        onConflict: "session_id,station_id,timeslot_id,student_login_id",
+      });
+
+    if (error) {
+      setMessage("Erreur sauvegarde : " + error.message);
+      return;
+    }
+
+    setMessage("Évaluation enregistrée.");
+  }
+
+  if (!staff) return null;
 
   return (
-    <DashboardShell
-      roleLabel="Examinateur"
-      userName={profile.full_name || "Examinateur"}
-      topColor="#e7b644"
-      accentColor="#efc352"
-      lightAccent="#fff0c8"
-      avatarUrl={profile.photo_url || null}
-      activePath="/examinateur"
-      navItems={[
-        { label: "Tableau de bord", href: "/examinateur", icon: LayoutDashboard },
-        { label: "Mes sessions", href: "/examinateur", icon: ClipboardList },
-        { label: "Présents", href: "/examinateur", icon: CheckSquare },
-        { label: "Évaluations", href: "/examinateur", icon: FileText },
-        { label: "Heures", href: "/examinateur", icon: Clock3 },
-        { label: "Démarrer", href: "/examinateur", icon: PlayCircle },
-        { label: "Profil", href: "/examinateur", icon: UserCircle2 },
-      ]}
-    >
-      <DashboardTitle
-        title="Tableau de bord examinateur"
-        subtitle="Liste synchronisée avec l’appel réalisé par l’administration"
-      />
+    <main className="min-h-screen bg-[#f5f0e5] p-6 text-[#2f2f2f]">
+      <div className="mx-auto max-w-6xl">
+        <div className="rounded-[28px] bg-white p-6 shadow">
+          <h1 className="text-3xl font-bold">Espace examinateur</h1>
+          <p className="mt-2 text-sm text-[#666]">
+            Bonjour {staff.prenom}, voici tes étudiants à évaluer.
+          </p>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Sessions" value={String(assignedSessions.length)} subtitle="Affectées" />
-        <StatCard title="Présents" value={String(presentStudents.length)} subtitle="À évaluer" />
-        <StatCard title="Absents" value={String(absentStudents.length)} subtitle="Non présents" />
-        <StatCard title="Heures prévues" value={String(totalPlannedHours)} subtitle="Total" />
-      </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("staff_session");
+              window.location.href = "/";
+            }}
+            className="mt-4 rounded-xl bg-red-500 px-4 py-2 text-white"
+          >
+            Déconnexion
+          </button>
+        </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <Panel title="Choisir une session">
-          <div className="space-y-3">
-            <select
-              className="w-full rounded-2xl border border-[#eadccf] bg-white px-4 py-3"
-              value={selectedSessionId}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-            >
-              <option value="">Choisir une session</option>
-              {assignedSessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
+        {message ? (
+          <div className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold shadow">
+            {message}
+          </div>
+        ) : null}
 
-            {selectedSession ? (
-              <div className="rounded-2xl bg-white p-4">
-                <p className="font-semibold">{selectedSession.title}</p>
-                <p className="text-sm text-[#8d8278]">
-                  {new Date(selectedSession.starts_at).toLocaleString("fr-FR")}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <section className="rounded-[28px] bg-white p-6 shadow">
+            <h2 className="text-xl font-bold">Mes passages</h2>
+
+            <div className="mt-4 space-y-3">
+              {assignments.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Aucune affectation pour le moment.
                 </p>
-                <p className="text-sm text-[#8d8278]">{selectedSession.location}</p>
-              </div>
-            ) : null}
-          </div>
-        </Panel>
+              ) : (
+                assignments.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => openEvaluation(a)}
+                    className="block w-full rounded-2xl border bg-[#faf7f0] p-4 text-left hover:bg-[#edf5e6]"
+                  >
+                    <p className="font-bold">{studentName(a.student_login_id)}</p>
+                    <p className="text-sm text-gray-600">
+                      {stationName(a.station_id)} • {timeslotLabel(a.timeslot_id)}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
 
-        <Panel title="Étudiants présents / retard">
-          <div className="space-y-3">
-            {presentStudents.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucun étudiant présent pour le moment.</p>
+          <section className="rounded-[28px] bg-white p-6 shadow">
+            <h2 className="text-xl font-bold">Grille d’évaluation</h2>
+
+            {!selected ? (
+              <p className="mt-4 text-sm text-gray-500">
+                Sélectionne un étudiant à gauche.
+              </p>
             ) : (
-              presentStudents.map((student) => (
-                <div key={student.id} className="rounded-2xl bg-white p-4">
-                  <p className="font-semibold text-[#2c2f4a]">{student.full_name}</p>
-                  <p className="text-sm text-[#8d8278]">{student.email}</p>
+              <>
+                <div className="mt-4 rounded-2xl bg-[#faf7f0] p-4">
+                  <p className="font-bold">
+                    {studentName(selected.student_login_id)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {stationName(selected.station_id)} •{" "}
+                    {timeslotLabel(selected.timeslot_id)}
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
 
-      <div className="mt-5">
-        <Panel title="Accès rapide">
-          <div className="grid gap-3 md:grid-cols-3">
-            <MiniAction href="/examinateur" label="Démarrer une évaluation" />
-            <MiniAction href="/examinateur" label="Voir mes affectations" />
-            <MiniAction href="/examinateur" label="Télécharger attestation" />
-          </div>
-        </Panel>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <ScoreInput
+                    label="Score global /20"
+                    value={evaluation.score_global}
+                    onChange={(v) =>
+                      setEvaluation({ ...evaluation, score_global: v })
+                    }
+                  />
+
+                  <ScoreInput
+                    label="Communication /5"
+                    value={evaluation.communication}
+                    onChange={(v) =>
+                      setEvaluation({ ...evaluation, communication: v })
+                    }
+                  />
+
+                  <ScoreInput
+                    label="Raisonnement /5"
+                    value={evaluation.raisonnement}
+                    onChange={(v) =>
+                      setEvaluation({ ...evaluation, raisonnement: v })
+                    }
+                  />
+
+                  <ScoreInput
+                    label="Technique /5"
+                    value={evaluation.technique}
+                    onChange={(v) =>
+                      setEvaluation({ ...evaluation, technique: v })
+                    }
+                  />
+                </div>
+
+                <textarea
+                  placeholder="Commentaire"
+                  value={evaluation.commentaire}
+                  onChange={(e) =>
+                    setEvaluation({
+                      ...evaluation,
+                      commentaire: e.target.value,
+                    })
+                  }
+                  className="mt-4 min-h-[120px] w-full rounded-2xl border bg-[#faf7f0] px-4 py-3"
+                />
+
+                <button
+                  onClick={saveEvaluation}
+                  className="mt-4 rounded-2xl bg-[#6a8f4f] px-6 py-3 font-semibold text-white"
+                >
+                  Enregistrer l’évaluation
+                </button>
+              </>
+            )}
+          </section>
+        </div>
       </div>
-    </DashboardShell>
+    </main>
+  );
+}
+
+function ScoreInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-sm font-semibold">
+      {label}
+      <input
+        type="number"
+        min="0"
+        max="20"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-2xl border bg-[#faf7f0] px-4 py-3"
+      />
+    </label>
   );
 }
