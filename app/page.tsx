@@ -28,15 +28,14 @@ const missions = [
 export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fbf1df] text-[#2c2f4a]">
-
       <Decor />
 
-      <section className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 py-8">
+      <section className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 py-8 lg:px-10">
 
         {/* HEADER CENTRÉ */}
-        <header className="flex flex-col items-center text-center">
+        <header className="mx-auto flex max-w-4xl flex-col items-center text-center">
 
-          <div className="mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-2xl">
+          <div className="mb-4 flex h-32 w-32 animate-[float_5s_ease-in-out_infinite] items-center justify-center rounded-full bg-white shadow-2xl ring-8 ring-white/50">
             <img src="/logo-tct.png" className="h-24 w-24 object-contain" />
           </div>
 
@@ -48,7 +47,7 @@ export default function HomePage() {
             Bienvenue
           </h1>
 
-          <p className="mt-4 text-xl">
+          <p className="mt-4 text-2xl">
             Plateforme de gestion des ECOS
             <br />
             et de l’accompagnement des externes
@@ -57,26 +56,30 @@ export default function HomePage() {
         </header>
 
         {/* CONTENU */}
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_0.95fr]">
 
           {/* GAUCHE */}
           <div className="flex flex-col items-center lg:items-start">
 
-            <div className="w-full max-w-xl overflow-hidden rounded-[40px] shadow-2xl">
-              <img src="/photo-equipe.jpg" className="h-[320px] w-full object-cover" />
+            <div className="w-full max-w-xl overflow-hidden rounded-[42px] border-8 border-white shadow-2xl transition hover:scale-[1.02]">
+              <img
+                src="/photo-equipe.jpg"
+                className="h-[350px] w-full object-cover"
+              />
             </div>
 
-            <div className="mt-8 w-full max-w-xl bg-white p-6 rounded-3xl shadow-xl">
+            <div className="mt-8 w-full max-w-xl rounded-[34px] border border-[#eadccf] bg-white/95 p-7 shadow-2xl">
 
-              <h2 className="text-xl font-bold text-[#6b9159] mb-3">
+              <h2 className="mb-3 text-2xl font-bold text-[#6b9159]">
                 🌿 NOTRE MISSION
               </h2>
 
-              <p className="mb-4">
-                Accompagner les externes du D2 au D4 vers la réussite aux ECOS.
+              <p className="mb-5 text-lg">
+                Accompagner les externes du <strong>D2 au D4</strong>
+                vers la réussite aux ECOS.
               </p>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {missions.map((m) => (
                   <Mission key={m.title} {...m} />
                 ))}
@@ -87,21 +90,19 @@ export default function HomePage() {
           </div>
 
           {/* DROITE */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-start justify-center lg:pt-10">
 
-            <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl">
+            <div className="w-full max-w-[470px] rounded-[34px] bg-white p-8 shadow-2xl">
 
-              <h2 className="text-2xl font-semibold mb-6 text-[#2c2f4a]">
-                Connexion
-              </h2>
+              <h2 className="text-3xl font-semibold mb-6">Connexion</h2>
 
               <div className="space-y-4">
-                <input disabled placeholder="Identifiant" className="w-full p-3 border rounded-xl text-[#2c2f4a]" />
-                <input disabled placeholder="Mot de passe" className="w-full p-3 border rounded-xl text-[#2c2f4a]" />
+                <input disabled placeholder="Identifiant" className="w-full p-4 border rounded-xl text-[#2c2f4a]" />
+                <input disabled placeholder="Mot de passe" className="w-full p-4 border rounded-xl text-[#2c2f4a]" />
 
                 <Link
                   href="/login?role=etudiant"
-                  className="block text-center bg-[#668b4e] text-white p-3 rounded-xl font-semibold"
+                  className="block bg-[#668b4e] text-white p-4 rounded-xl text-center"
                 >
                   Se connecter
                 </Link>
@@ -119,11 +120,9 @@ export default function HomePage() {
                   const Icon = r.icon;
                   return (
                     <Link key={r.label} href={r.href}>
-                      <div
-                        className="w-10 h-10 mx-auto rounded-full flex items-center justify-center text-white"
-                        style={{ background: r.color }}
-                      >
-                        <Icon size={18} />
+                      <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center text-white"
+                        style={{ background: r.color }}>
+                        <Icon size={20} />
                       </div>
                       <p className="mt-1">{r.label}</p>
                     </Link>
@@ -131,12 +130,12 @@ export default function HomePage() {
                 })}
               </div>
 
-              {/* BOUTONS FIXÉS */}
-              <div className="mt-6 flex flex-col items-center gap-3">
+              {/* BOUTONS CORRIGÉS */}
+              <div className="mt-7 flex flex-col items-center gap-3">
 
                 <Link
                   href="/activation"
-                  className="px-4 py-2 rounded-full bg-[#edf5e6] font-semibold"
+                  className="px-5 py-2 rounded-full bg-[#edf5e6] border border-[#cfe3bf] font-bold shadow-sm"
                   style={{ color: "#2f4d1f" }}
                 >
                   Activer mon compte étudiant
@@ -144,7 +143,7 @@ export default function HomePage() {
 
                 <Link
                   href="/signup"
-                  className="px-4 py-2 rounded-full font-semibold animate-pulse"
+                  className="px-5 py-3 rounded-full font-bold shadow-lg animate-pulse"
                   style={{
                     backgroundColor: "#cf332b",
                     color: "#ffffff",
@@ -161,7 +160,7 @@ export default function HomePage() {
 
         </div>
 
-        <p className="mt-10 text-center text-lg italic text-[#6b9159]">
+        <p className="mt-10 text-center text-xl italic text-[#6b9159]">
           Ensemble, vers la réussite ❤️
         </p>
 
@@ -170,16 +169,16 @@ export default function HomePage() {
   );
 }
 
-/* COMPONENT */
+/* COMPONENTS */
 
 function Mission({ icon: Icon, color, title, text }: any) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-4">
       <div
-        className="w-10 h-10 flex items-center justify-center rounded-full text-white"
+        className="w-12 h-12 flex items-center justify-center rounded-full text-white"
         style={{ background: color }}
       >
-        <Icon size={18} />
+        <Icon size={20} />
       </div>
       <div>
         <p className="font-semibold" style={{ color }}>{title}</p>
