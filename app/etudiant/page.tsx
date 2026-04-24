@@ -5,8 +5,11 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Student = {
   prenom: string;
+  nom: string;
   login_id: string;
-  promotion: string; // 🔥 important
+  promotion: string;
+  email?: string;
+  telephone?: string;
 };
 
 type Session = {
@@ -16,7 +19,7 @@ type Session = {
   lieu: string | null;
   statut: string;
   capacite: number | null;
-  promotion: string; // 🔥 important
+  promotion: string;
 };
 
 type Registration = {
@@ -42,7 +45,7 @@ export default function StudentPage() {
     const parsed = JSON.parse(raw);
     setStudent(parsed);
 
-    fetchSessions(parsed.promotion); // 🔥 filtre ici
+    fetchSessions(parsed.promotion);
     fetchRegistrations(parsed.login_id);
   }, []);
 
@@ -51,7 +54,7 @@ export default function StudentPage() {
       .from("ecos_sessions")
       .select("*")
       .eq("statut", "published")
-      .eq("promotion", promotion) // 🔥 filtre
+      .eq("promotion", promotion)
       .order("date_session");
 
     if (error) {
@@ -97,6 +100,9 @@ export default function StudentPage() {
       session_id: sessionId,
       student_login_id: student.login_id,
       student_prenom: student.prenom,
+      student_nom: student.nom || null,
+      student_email: student.email || null,
+      student_phone: student.telephone || null,
     });
 
     if (error) {
@@ -133,7 +139,6 @@ export default function StudentPage() {
   return (
     <main className="min-h-screen bg-[#f5f0e5] p-6 text-[#2f2f2f]">
       <div className="mx-auto max-w-4xl">
-
         <div className="rounded-[28px] bg-white p-6 shadow">
           <h1 className="text-3xl font-bold">Bonjour {student.prenom}</h1>
           <p className="mt-2 text-sm text-[#666]">
@@ -141,11 +146,11 @@ export default function StudentPage() {
           </p>
         </div>
 
-        {message && (
+        {message ? (
           <div className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold shadow">
             {message}
           </div>
-        )}
+        ) : null}
 
         <section className="mt-6 rounded-[28px] bg-white p-6 shadow">
           <h2 className="text-xl font-semibold">Sessions disponibles</h2>
@@ -219,7 +224,6 @@ export default function StudentPage() {
         >
           Déconnexion
         </button>
-
       </div>
     </main>
   );
