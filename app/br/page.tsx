@@ -14,39 +14,28 @@ import {
   Users,
   CheckCircle2,
   XCircle,
-  BadgeCheck,
+  RefreshCw,
+  Send,
 } from "lucide-react";
 import { useUser } from "@/lib/useUser";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardShell, {
   DashboardTitle,
-  MiniAction,
   Panel,
   StatCard,
 } from "@/components/dashboard-shell";
 
 type RequestItem = {
   id: string;
-  full_name: string;
+  prenom: string | null;
+  nom: string | null;
   email: string;
-  phone: string | null;
-  level: string | null;
-  program: string | null;
-  motivation: string | null;
-  status: string;
-  reviewed_by_profile_id: string | null;
-  reviewed_at: string | null;
-  created_at: string;
-};
-
-type ActivationCodeItem = {
-  id: string;
-  request_id: string | null;
-  email: string;
-  student_login_id: string;
-  activation_code: string;
-  is_used: boolean;
-  expires_at: string | null;
+  telephone: string | null;
+  ville: string | null;
+  promotion: string | null;
+  parcours: string | null;
+  statut: string;
+  paiement_verifie: boolean;
   created_at: string;
 };
 
@@ -56,24 +45,31 @@ type SessionItem = {
   starts_at: string;
 };
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://tct-second-cycle.vercel.app";
+
 export default function BRPage() {
   const { user, profile, loading } = useUser();
 
   const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [activationCodes, setActivationCodes] = useState<ActivationCodeItem[]>([]);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     if (!loading && !user) {
       window.location.href = "/login?role=br";
       return;
     }
+
     if (!loading && user && profile?.role !== "br") {
       window.location.href = "/";
       return;
     }
+
     if (user && profile?.role === "br") {
       loadDashboard();
     }
@@ -81,14 +77,11 @@ export default function BRPage() {
 
   async function loadDashboard() {
     setPageLoading(true);
+    setMessage("");
 
-    const [requestsRes, activationRes, sessionsRes] = await Promise.all([
+    const [requestsRes, sessionsRes] = await Promise.all([
       supabase
-        .from("student_registration_requests")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("student_activation_codes")
+        .from("inscription_requests")
         .select("*")
         .order("created_at", { ascending: false }),
       supabase
@@ -97,101 +90,82 @@ export default function BRPage() {
         .order("starts_at", { ascending: true }),
     ]);
 
-    if (!requestsRes.error) setRequests((requestsRes.data as RequestItem[]) || []);
-    if (!activationRes.error) setActivationCodes((activationRes.data as ActivationCodeItem[]) || []);
-    if (!sessionsRes.error) setSessions((sessionsRes.data as SessionItem[]) || []);
+    if (requestsRes.error) {
+      setMessage("Erreur lors du chargement des demandes.");
+      setRequests([]);
+    } else {
+      setRequests((requestsRes.data as RequestItem[]) || []);
+    }
+
+    if (!sessionsRes.error) {
+      setSessions((sessionsRes.data as SessionItem[]) || []);
+    }
 
     setPageLoading(false);
   }
 
-  function makeStudentLoginId(fullName: string, level?: string | null) {
-    const normalized = fullName
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "")
-      .slice(0, 10);
-
-    const suffix = Math.floor(1000 + Math.random() * 9000);
-    return `${level?.toLowerCase() || "etu"}-${normalized}-${suffix}`;
-  }
-
-  function makeActivationCode() {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let out = "";
-    for (let i = 0; i < 8; i++) {
-      out += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return out;
-  }
-
-  async function approveRequest(request: RequestItem) {
-    if (!user) return;
-
-    setMessage("");
-
-    const studentLoginId = makeStudentLoginId(request.full_name, request.level);
-    const activationCode = makeActivationCode();
-
-    const reviewedRes = await supabase
-      .from("student_registration_requests")
-      .update({
-        status: "approved",
-        reviewed_by_profile_id: user.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", request.id);
-
-    if (reviewedRes.error) {
-      setMessage("Erreur lors de la validation de la demande.");
-      return;
-    }
-
-    const activationRes = await supabase.from("student_activation_codes").insert({
-      request_id: request.id,
-      email: request.email,
-      student_login_id: studentLoginId,
-      activation_code: activationCode,
-      is_used: false,
-      expires_at: null,
-      created_by_profile_id: user.id,
-    });
-
-    if (activationRes.error) {
-      setMessage("Demande validée, mais erreur lors de la génération de l’identifiant.");
-      await loadDashboard();
-      return;
-    }
-
-    const notificationRes = await supabase.from("notifications").insert({
-      profile_id: user.id,
-      title: "Demande validée",
-      message: `Accès généré pour ${request.full_name} (${studentLoginId}).`,
-      type: "request_approved",
-      is_read: false,
-    });
-
-    if (notificationRes.error) {
-      console.error("Notification BR non créée:", notificationRes.error);
-    }
-
-    setMessage(
-      `Demande validée. ID étudiant : ${studentLoginId} · Code d’activation : ${activationCode}`
-    );
-    loadDashboard();
-  }
-
-  async function rejectRequest(requestId: string) {
-    if (!user) return;
-
+  async function markPaymentOk(requestId: string) {
     setMessage("");
 
     const { error } = await supabase
-      .from("student_registration_requests")
+      .from("inscription_requests")
       .update({
-        status: "rejected",
-        reviewed_by_profile_id: user.id,
-        reviewed_at: new Date().toISOString(),
+        paiement_verifie: true,
+        statut: "payment_verified",
+      })
+      .eq("id", requestId);
+
+    if (error) {
+      setMessage("Erreur lors de la validation du paiement.");
+      return;
+    }
+
+    setMessage("Paiement marqué comme vérifié.");
+    loadDashboard();
+  }
+
+  async function approveRequest(request: RequestItem) {
+    setMessage("");
+
+    if (!request.paiement_verifie) {
+      setMessage("Impossible de valider : paiement non vérifié.");
+      return;
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-inscription`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        request_id: request.id,
+        site_base_url: `${SITE_URL}/activation`,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      setMessage("Erreur lors de l’envoi du mail d’activation.");
+      return;
+    }
+
+    setMessage(`Mail d’activation envoyé à ${request.email}.`);
+    loadDashboard();
+  }
+
+  async function resendActivation(request: RequestItem) {
+    await approveRequest(request);
+  }
+
+  async function rejectRequest(requestId: string) {
+    setMessage("");
+
+    const { error } = await supabase
+      .from("inscription_requests")
+      .update({
+        statut: "rejected",
       })
       .eq("id", requestId);
 
@@ -204,196 +178,249 @@ export default function BRPage() {
     loadDashboard();
   }
 
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
-  const approvedCount = requests.filter((r) => r.status === "approved").length;
-  const rejectedCount = requests.filter((r) => r.status === "rejected").length;
-  const generatedCount = activationCodes.length;
+  const filteredRequests = useMemo(() => {
+    if (filter === "all") return requests;
+    return requests.filter((r) => r.statut === filter);
+  }, [requests, filter]);
 
-  const recentGenerated = useMemo(() => activationCodes.slice(0, 5), [activationCodes]);
+  const pendingCount = requests.filter((r) => r.statut === "pending_review").length;
+  const paymentVerifiedCount = requests.filter(
+    (r) => r.statut === "payment_verified"
+  ).length;
+  const activationSentCount = requests.filter(
+    (r) => r.statut === "activation_sent"
+  ).length;
+  const activeCount = requests.filter((r) => r.statut === "active").length;
+  const rejectedCount = requests.filter((r) => r.statut === "rejected").length;
 
-  if (loading || pageLoading) return <main className="p-10">Chargement...</main>;
-  if (!user || !profile || profile.role !== "br") return <main className="p-10">Redirection...</main>;
+  if (loading || pageLoading) return <p>Chargement...</p>;
+  if (!user || !profile || profile.role !== "br") return <p>Redirection...</p>;
 
   return (
     <DashboardShell
       roleLabel="BR"
-      userName={profile.full_name || "BR"}
-      topColor="#5f7f44"
+      userName={profile.full_name || profile.email || "Bureau"}
+      topColor="#f7f1e8"
       accentColor="#6a8f4f"
-      lightAccent="#eaf1df"
-      avatarUrl={profile.photo_url || null}
+      lightAccent="#eef5e8"
+      avatarUrl={profile.photo_url}
       activePath="/br"
       navItems={[
-        { label: "Tableau de bord", href: "/br", icon: LayoutDashboard },
+        { label: "Dashboard", href: "/br", icon: LayoutDashboard },
         { label: "Demandes", href: "/br", icon: FileText },
-        { label: "Accès générés", href: "/br", icon: KeyRound },
-        { label: "Sessions", href: "/br", icon: Calendar },
-        { label: "Étudiants", href: "/br", icon: Users },
-        { label: "Historique", href: "/br", icon: History },
-        { label: "Profil", href: "/br", icon: UserCircle2 },
+        { label: "Sessions", href: "/br/sessions", icon: Calendar },
+        { label: "Étudiants", href: "/br/students", icon: Users },
+        { label: "Historique", href: "/br/history", icon: History },
+        { label: "Profil", href: "/profile", icon: UserCircle2 },
       ]}
     >
       <DashboardTitle
-        title="Bureau du tutorat"
-        subtitle="Validation des demandes et génération des accès étudiants"
+        title="Interface BR"
+        subtitle="Gestion des demandes d’inscription, paiements et activations étudiants."
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Demandes" value={String(requests.length)} subtitle="Total" />
-        <StatCard title="En attente" value={String(pendingCount)} subtitle="À traiter" />
-        <StatCard title="Validées" value={String(approvedCount)} subtitle="Approuvées" />
-        <StatCard title="Accès générés" value={String(generatedCount)} subtitle="ID créés" />
+      <div className="grid gap-4 md:grid-cols-5">
+        <StatCard
+          title="En attente"
+          value={String(pendingCount)}
+          subtitle="Demandes à vérifier"
+        />
+        <StatCard
+          title="Paiement OK"
+          value={String(paymentVerifiedCount)}
+          subtitle="Prêtes à valider"
+        />
+        <StatCard
+          title="Activation envoyée"
+          value={String(activationSentCount)}
+          subtitle="Mail envoyé"
+        />
+        <StatCard
+          title="Actifs"
+          value={String(activeCount)}
+          subtitle="Comptes activés"
+        />
+        <StatCard
+          title="Refusés"
+          value={String(rejectedCount)}
+          subtitle="Demandes rejetées"
+        />
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <Panel title="Demandes d’inscription">
-          <div className="space-y-3">
-            {requests.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucune demande pour le moment.</p>
-            ) : (
-              requests.map((r) => (
-                <div key={r.id} className="rounded-2xl bg-white p-4">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[#2c2f4a]">{r.full_name}</p>
-                      <p className="text-sm text-[#8d8278]">{r.email}</p>
-                      {r.phone ? <p className="text-sm text-[#8d8278]">{r.phone}</p> : null}
-                      <p className="mt-1 text-sm text-[#8d8278]">
-                        {r.level || "Niveau non renseigné"} · {r.program || "Programme non renseigné"}
-                      </p>
-                      {r.motivation ? (
-                        <p className="mt-2 text-sm text-[#6f665e]">{r.motivation}</p>
-                      ) : null}
-                      <p className="mt-2 text-xs text-[#9b9086]">
-                        {new Date(r.created_at).toLocaleString("fr-FR")}
-                      </p>
-                    </div>
+      <Panel title="Demandes d’inscription" rightText={`${filteredRequests.length} demande(s)`}>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-xl border border-[#eadfd2] bg-white px-3 py-2 text-sm text-[#3f3a32]"
+          >
+            <option value="all">Toutes</option>
+            <option value="pending_review">En attente</option>
+            <option value="payment_verified">Paiement vérifié</option>
+            <option value="activation_sent">Activation envoyée</option>
+            <option value="active">Actifs</option>
+            <option value="rejected">Refusés</option>
+          </select>
 
-                    <div className="flex flex-col items-start gap-2 lg:items-end">
-                      {r.status === "pending" ? (
-                        <>
-                          <span className="rounded-full bg-[#fff3dd] px-3 py-1 text-xs font-semibold text-[#b8860b]">
-                            En attente
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => rejectRequest(r.id)}
-                              className="inline-flex items-center gap-2 rounded-xl border border-[#efc7c1] bg-[#fff5f3] px-3 py-2 text-xs font-semibold text-[#cf5d50]"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Refuser
-                            </button>
-                            <button
-                              onClick={() => approveRequest(r)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-[#6a8f4f] px-3 py-2 text-xs font-semibold text-white"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Valider
-                            </button>
-                          </div>
-                        </>
-                      ) : r.status === "approved" ? (
-                        <span className="rounded-full bg-[#e8f2db] px-3 py-1 text-xs font-semibold text-[#5f7f44]">
-                          Validée
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-[#fde8e5] px-3 py-1 text-xs font-semibold text-[#c65a50]">
-                          Refusée
-                        </span>
-                      )}
-                    </div>
+          <button
+            onClick={loadDashboard}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#d9cbbb] bg-white px-3 py-2 text-sm font-semibold text-[#6a8f4f]"
+          >
+            <RefreshCw size={16} />
+            Rafraîchir
+          </button>
+        </div>
+
+        {filteredRequests.length === 0 ? (
+          <p className="text-sm text-[#8d8172]">Aucune demande pour le moment.</p>
+        ) : (
+          <div className="space-y-3">
+            {filteredRequests.map((r) => (
+              <div
+                key={r.id}
+                className="rounded-2xl border border-[#eadfd2] bg-white p-4 shadow-sm"
+              >
+                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                  <div>
+                    <h3 className="text-base font-bold text-[#3f3a32]">
+                      {r.prenom || ""} {r.nom || ""}
+                    </h3>
+                    <p className="text-sm text-[#8d8172]">{r.email}</p>
+                    {r.telephone ? (
+                      <p className="text-sm text-[#8d8172]">{r.telephone}</p>
+                    ) : null}
+                    <p className="mt-2 text-sm text-[#5f574c]">
+                      {r.promotion || "Promotion non renseignée"} ·{" "}
+                      {r.parcours || "Parcours non renseigné"}
+                    </p>
+                    <p className="text-xs text-[#a2978a]">
+                      Demande créée le{" "}
+                      {new Date(r.created_at).toLocaleString("fr-FR")}
+                    </p>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
 
-        <Panel title="Accès étudiants générés">
-          <div className="space-y-3">
-            {recentGenerated.length === 0 ? (
-              <p className="text-sm text-[#8d8278]">Aucun accès généré pour le moment.</p>
-            ) : (
-              recentGenerated.map((a) => (
-                <div key={a.id} className="rounded-2xl bg-white p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[#2c2f4a]">{a.email}</p>
-                      <p className="mt-1 text-sm text-[#8d8278]">
-                        ID : <span className="font-medium text-[#2c2f4a]">{a.student_login_id}</span>
-                      </p>
-                      <p className="text-sm text-[#8d8278]">
-                        Code : <span className="font-medium text-[#2c2f4a]">{a.activation_code}</span>
-                      </p>
-                      <p className="mt-2 text-xs text-[#9b9086]">
-                        {new Date(a.created_at).toLocaleString("fr-FR")}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        a.is_used
-                          ? "bg-[#e8f2db] text-[#5f7f44]"
-                          : "bg-[#eef4e7] text-[#6a8f4f]"
-                      }`}
-                    >
-                      {a.is_used ? "Utilisé" : "Actif"}
+                  <div className="flex flex-col gap-2 md:items-end">
+                    <StatusBadge statut={r.statut} />
+                    <span className="text-xs font-semibold text-[#5f574c]">
+                      Paiement : {r.paiement_verifie ? "OK" : "non vérifié"}
                     </span>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_1fr]">
-        <Panel title="Vue rapide">
-          <div className="space-y-3 text-sm text-[#655d57]">
-            <div className="rounded-2xl bg-white p-4">
-              • {pendingCount} demandes restent à traiter
-            </div>
-            <div className="rounded-2xl bg-white p-4">
-              • {approvedCount} étudiants ont reçu un accès
-            </div>
-            <div className="rounded-2xl bg-white p-4">
-              • {rejectedCount} demandes ont été refusées
-            </div>
-          </div>
-        </Panel>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {r.statut === "active" ? (
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-[#eef5e8] px-3 py-2 text-xs font-semibold text-[#6a8f4f]">
+                      <CheckCircle2 size={16} />
+                      Compte activé
+                    </span>
+                  ) : r.statut === "rejected" ? (
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-[#fff5f3] px-3 py-2 text-xs font-semibold text-[#cf5d50]">
+                      <XCircle size={16} />
+                      Demande refusée
+                    </span>
+                  ) : (
+                    <>
+                      {!r.paiement_verifie ? (
+                        <button
+                          onClick={() => markPaymentOk(r.id)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#6a8f4f] px-3 py-2 text-xs font-semibold text-white"
+                        >
+                          <CreditCard size={16} />
+                          Paiement OK
+                        </button>
+                      ) : null}
 
-        <Panel title="Sessions à venir">
-          <div className="space-y-3">
+                      {r.paiement_verifie ? (
+                        <>
+                          <button
+                            onClick={() => approveRequest(r)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#6a8f4f] px-3 py-2 text-xs font-semibold text-white"
+                          >
+                            <Send size={16} />
+                            Valider et envoyer le mail
+                          </button>
+
+                          <button
+                            onClick={() => resendActivation(r)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-[#d9cbbb] bg-white px-3 py-2 text-xs font-semibold text-[#6a8f4f]"
+                          >
+                            <KeyRound size={16} />
+                            Renvoyer le lien
+                          </button>
+                        </>
+                      ) : null}
+
+                      <button
+                        onClick={() => rejectRequest(r.id)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#efc7c1] bg-[#fff5f3] px-3 py-2 text-xs font-semibold text-[#cf5d50]"
+                      >
+                        <XCircle size={16} />
+                        Refuser
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <Panel title="Prochaines sessions">
+        {sessions.length === 0 ? (
+          <p className="text-sm text-[#8d8172]">Aucune session programmée.</p>
+        ) : (
+          <div className="space-y-2">
             {sessions.slice(0, 4).map((s) => (
-              <div key={s.id} className="rounded-2xl bg-white p-4">
-                <p className="font-semibold text-[#2c2f4a]">{s.title}</p>
-                <p className="mt-1 text-sm text-[#8d8278]">
+              <div
+                key={s.id}
+                className="rounded-xl border border-[#eadfd2] bg-white p-3"
+              >
+                <p className="text-sm font-semibold text-[#3f3a32]">{s.title}</p>
+                <p className="text-xs text-[#8d8172]">
                   {new Date(s.starts_at).toLocaleString("fr-FR")}
                 </p>
               </div>
             ))}
           </div>
-        </Panel>
-      </div>
-
-      <div className="mt-5">
-        <Panel title="Accès rapide">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <MiniAction href="/br" label="Voir les demandes" />
-            <MiniAction href="/br" label="Voir les accès générés" />
-            <MiniAction href="/br" label="Voir les sessions" />
-            <MiniAction href="/br" label="Suivi des étudiants" />
-          </div>
-        </Panel>
-      </div>
+        )}
+      </Panel>
 
       {message ? (
-        <div className="mt-5 rounded-2xl border border-[#dfead0] bg-white px-4 py-3 text-sm text-[#4f6c38]">
-          <div className="flex items-center gap-2">
-            <BadgeCheck className="h-4 w-4" />
-            <span>{message}</span>
-          </div>
+        <div className="rounded-2xl border border-[#eadfd2] bg-[#fffaf4] p-4 text-sm font-semibold text-[#5f574c]">
+          {message}
         </div>
       ) : null}
     </DashboardShell>
+  );
+}
+
+function StatusBadge({ statut }: { statut: string }) {
+  const label =
+    statut === "pending_review"
+      ? "En attente"
+      : statut === "payment_verified"
+      ? "Paiement vérifié"
+      : statut === "activation_sent"
+      ? "Activation envoyée"
+      : statut === "active"
+      ? "Actif"
+      : statut === "rejected"
+      ? "Refusé"
+      : statut;
+
+  const className =
+    statut === "active"
+      ? "bg-[#eef5e8] text-[#6a8f4f]"
+      : statut === "rejected"
+      ? "bg-[#fff5f3] text-[#cf5d50]"
+      : "bg-[#f7f1e8] text-[#7b6d5d]";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${className}`}
+    >
+      {label}
+    </span>
   );
 }
