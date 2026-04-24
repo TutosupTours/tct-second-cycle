@@ -10,7 +10,6 @@ export default function SignupPage() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [password, setPassword] = useState("");
   const [promotion, setPromotion] = useState("D2");
   const [parcours, setParcours] = useState("ECOS P");
   const [message, setMessage] = useState("");
@@ -29,33 +28,13 @@ export default function SignupPage() {
     const cleanNom = nom.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!cleanPrenom || !cleanNom || !cleanEmail || !password) {
-      setMessage("Merci de remplir tous les champs obligatoires.");
+    if (!cleanPrenom || !cleanNom || !cleanEmail) {
+      setMessage("Merci de remplir prénom, nom et email.");
       setLoading(false);
       return;
     }
-
-    const signupRes = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: {
-        data: {
-          full_name: `${cleanPrenom} ${cleanNom}`,
-          role: "student",
-        },
-      },
-    });
-
-    if (signupRes.error) {
-      setMessage(signupRes.error.message);
-      setLoading(false);
-      return;
-    }
-
-    const authUserId = signupRes.data.user?.id;
 
     const { error } = await supabase.from("inscription_requests").insert({
-      auth_user_id: authUserId,
       prenom: cleanPrenom,
       nom: cleanNom,
       email: cleanEmail,
@@ -68,17 +47,16 @@ export default function SignupPage() {
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Erreur lors de l’envoi de la demande.");
       setLoading(false);
       return;
     }
 
-    setMessage("Demande envoyée. Le BR vérifiera ton paiement puis activera ton accès.");
+    setMessage("Demande envoyée. Le BR vérifiera ton paiement puis t’enverra un lien d’activation.");
     setPrenom("");
     setNom("");
     setEmail("");
     setTelephone("");
-    setPassword("");
     setPromotion("D2");
     setParcours("ECOS P");
     setLoading(false);
@@ -87,14 +65,19 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
       <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow">
-        <h1 className="text-3xl font-bold text-[#2f2f2f]">Demande d’inscription</h1>
+        <h1 className="text-3xl font-bold text-[#2f2f2f]">
+          Demande d’inscription
+        </h1>
+
+        <p className="mt-2 text-sm text-[#666]">
+          Le BR validera ton inscription après vérification du paiement.
+        </p>
 
         <div className="mt-6 space-y-4">
           <input className="w-full rounded-2xl border px-4 py-3" placeholder="Prénom" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
           <input className="w-full rounded-2xl border px-4 py-3" placeholder="Nom" value={nom} onChange={(e) => setNom(e.target.value)} />
           <input className="w-full rounded-2xl border px-4 py-3" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <input className="w-full rounded-2xl border px-4 py-3" placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
-          <input type="password" className="w-full rounded-2xl border px-4 py-3" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} />
 
           <select className="w-full rounded-2xl border px-4 py-3" value={promotion} onChange={(e) => handlePromotionChange(e.target.value)}>
             <option value="D2">D2</option>
