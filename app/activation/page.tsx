@@ -1,121 +1,71 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 export default function ActivationPage() {
-  const [email, setEmail] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("Activation en cours...");
+  const [loading, setLoading] = useState(true);
 
-  async function handleActivate() {
-    setMessage("");
+  useEffect(() => {
+    async function activate() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
 
-    // 1. vérifier le code
-    const { data: activation, error } = await supabase
-      .from("student_activation_codes")
-      .select("*")
-      .eq("email", email)
-      .eq("student_login_id", studentId)
-      .eq("activation_code", code)
-      .eq("is_used", false)
-      .single();
+      if (!token) {
+        setMessage("Lien d’activation invalide : token manquant.");
+        setLoading(false);
+        return;
+      }
 
-    if (error || !activation) {
-      setMessage("Code invalide ou déjà utilisé.");
-      return;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/activate-student`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          setMessage("Erreur activation : " + JSON.stringify(data));
+          setLoading(false);
+          return;
+        }
+
+        setMessage("Compte activé avec succès. Tu peux maintenant te connecter.");
+      } catch {
+        setMessage("Erreur serveur pendant l’activation.");
+      }
+
+      setLoading(false);
     }
 
-    // 2. créer le compte auth
-    const { data: signUpData, error: signUpError } =
-      await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-    if (signUpError || !signUpData.user) {
-      setMessage("Erreur lors de la création du compte.");
-      return;
-    }
-
-    const userId = signUpData.user.id;
-
-    // 3. créer le profil
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: userId,
-      email,
-      full_name: "",
-      role: "student",
-      student_number: studentId,
-    });
-
-    if (profileError) {
-      setMessage("Erreur lors de la création du profil.");
-      return;
-    }
-
-    // 4. marquer le code comme utilisé
-    await supabase
-      .from("student_activation_codes")
-      .update({ is_used: true })
-      .eq("id", activation.id);
-
-    setMessage("Compte créé avec succès. Tu peux maintenant te connecter.");
-
-    setEmail("");
-    setStudentId("");
-    setCode("");
-    setPassword("");
-  }
+    activate();
+  }, []);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#f5efe6]">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-[#2c2f4a] mb-4">
-          Activation du compte étudiant
+    <main className="min-h-screen flex items-center justify-center bg-[#f5f0e5] px-4">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-8 text-center shadow">
+        <h1 className="text-3xl font-bold text-[#2f2f2f]">
+          Activation du compte
         </h1>
 
-        <input
-          className="w-full mb-3 p-3 border rounded-xl"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <p className="mt-6 text-sm text-[#666]">{message}</p>
 
-        <input
-          className="w-full mb-3 p-3 border rounded-xl"
-          placeholder="ID étudiant"
-          value={studentId}
-          onChange={(e) => setStudentId(e.target.value)}
-        />
-
-        <input
-          className="w-full mb-3 p-3 border rounded-xl"
-          placeholder="Code d’activation"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-        />
-
-        <input
-          type="password"
-          className="w-full mb-4 p-3 border rounded-xl"
-          placeholder="Mot de passe"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button
-          onClick={handleActivate}
-          className="w-full bg-[#d74d45] text-white py-3 rounded-xl font-semibold"
-        >
-          Activer mon compte
-        </button>
-
-        {message && (
-          <p className="mt-4 text-sm text-center text-[#2c2f4a]">{message}</p>
-        )}
+        {!loading && message.includes("succès") ? (
+          <a
+            href="/login?role=student"
+            className="mt-6 inline-block rounded-2xl bg-[#7c9c56] px-6 py-3 font-semibold text-white"
+          >
+            Se connecter
+          </a>
+        ) : null}
       </div>
     </main>
   );
