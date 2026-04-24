@@ -14,7 +14,7 @@ const roles = [
   { label: "Admin", href: "/login?role=admin", icon: ShieldCheck, color: "#d63b33" },
   { label: "BR", href: "/login?role=br", icon: Users, color: "#668b4e" },
   { label: "Examinateur", href: "/login?role=examinateur", icon: Stethoscope, color: "#efc24d" },
-  { label: "Étudiant", href: "/login?role=student", icon: GraduationCap, color: "#ef9faa" }, // ✅ corrigé ici
+  { label: "Étudiant", href: "/login?role=student", icon: GraduationCap, color: "#ef9faa" },
   { label: "Faculté", href: "/login?role=faculty", icon: School, color: "#243b63" },
 ];
 
@@ -54,11 +54,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mt-6 w-full max-w-md overflow-hidden rounded-[38px] shadow-2xl">
-            <img src="/photo-equipe.jpg" alt="Équipe tutorat" className="h-[240px] w-full object-cover" />
+          <div className="mt-6 w-full max-w-md overflow-hidden rounded-[38px] shadow-2xl transition duration-500 hover:-translate-y-1 hover:scale-[1.02]">
+            <img
+              src="/photo-equipe.jpg"
+              alt="Équipe tutorat"
+              className="h-[240px] w-full object-cover"
+            />
           </div>
 
-          <div className="mt-8 rounded-3xl border border-[#eadccf] bg-white/90 p-6 shadow-xl">
+          <div className="mt-8 rounded-3xl border border-[#eadccf] bg-white/90 p-6 shadow-xl backdrop-blur">
             <h2 className="mb-3 text-xl font-bold text-[#6b9159]">
               🌿 NOTRE MISSION
             </h2>
@@ -78,9 +82,9 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center justify-center pb-20 lg:pb-0">
-          <div className="w-full max-w-[470px] rounded-[34px] bg-white p-8 shadow-xl">
+          <div className="w-full max-w-[470px] rounded-[34px] border border-white/70 bg-white/95 p-8 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur transition duration-500 hover:-translate-y-1">
             <div className="mb-7 flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#668b4e] text-white">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#668b4e] text-white shadow-lg">
                 <Users className="h-8 w-8" />
               </div>
 
@@ -95,15 +99,18 @@ export default function HomePage() {
             </div>
 
             <Link
-              href="/login?role=student" // ✅ corrigé ici aussi
-              className="block rounded-xl bg-[#668b4e] py-4 text-center font-semibold text-white"
+              href="/login?role=student"
+              className="block rounded-xl bg-[#668b4e] py-4 text-center font-semibold shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+              style={{ color: "#ffffff" }}
             >
               Se connecter
             </Link>
 
             <div className="my-7 flex items-center gap-3 text-[#9c9187]">
               <div className="h-px flex-1 bg-[#e5ddd2]" />
-              <span className="text-sm">Plateforme pour</span>
+              <span className="whitespace-nowrap text-sm">
+                Plateforme pour
+              </span>
               <div className="h-px flex-1 bg-[#e5ddd2]" />
             </div>
 
@@ -112,15 +119,15 @@ export default function HomePage() {
                 const Icon = role.icon;
 
                 return (
-                  <Link key={role.label} href={role.href}>
+                  <Link key={role.label} href={role.href} className="group">
                     <div
-                      className="mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white"
-                      style={{ backgroundColor: role.color }}
+                      className="mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md transition duration-300 group-hover:-translate-y-1 group-hover:scale-110 group-hover:shadow-xl"
+                      style={{ backgroundColor: role.color, color: "#ffffff" }}
                     >
                       <Icon className="h-6 w-6" />
                     </div>
 
-                    <p className="mt-2 text-xs font-medium">
+                    <p className="mt-2 text-xs font-medium text-[#2c2f4a]">
                       {role.label}
                     </p>
                   </Link>
@@ -128,23 +135,29 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="mt-7 flex flex-col items-center gap-3">
+            <div className="mt-7 flex flex-col items-center gap-3 text-center">
               <Link
                 href="/activation"
-                className="rounded-full border px-5 py-2 text-sm"
+                className="rounded-full border border-[#cfe3bf] bg-[#edf5e6] px-5 py-2 text-sm font-bold shadow-sm transition hover:scale-105 hover:shadow-md"
+                style={{ color: "#2f4d1f" }}
               >
                 Activer mon compte étudiant
               </Link>
 
               <Link
                 href="/signup"
-                className="rounded-full px-5 py-3 text-sm bg-red-500 text-white"
+                className="rounded-full px-5 py-3 text-sm font-bold shadow-lg animate-pulse transition hover:scale-105 hover:shadow-xl"
+                style={{ backgroundColor: "#cf332b", color: "#ffffff" }}
               >
                 Demande d’inscription
               </Link>
             </div>
           </div>
         </div>
+
+        <p className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 text-xl italic text-[#6b9159] md:block">
+          Ensemble, vers la réussite <span className="text-[#cf3a33]">♥</span>
+        </p>
       </section>
     </main>
   );
@@ -152,10 +165,10 @@ export default function HomePage() {
 
 function Mission({ icon: Icon, color, title, text }: any) {
   return (
-    <div className="flex gap-4">
+    <div className="group flex gap-4 rounded-2xl p-2 transition hover:bg-[#fbf1df]">
       <div
-        className="flex h-12 w-12 items-center justify-center rounded-full text-white"
-        style={{ backgroundColor: color }}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition group-hover:scale-110"
+        style={{ backgroundColor: color, color: "#ffffff" }}
       >
         <Icon className="h-6 w-6" />
       </div>
@@ -164,12 +177,28 @@ function Mission({ icon: Icon, color, title, text }: any) {
         <p className="font-semibold" style={{ color }}>
           {title}
         </p>
-        <p className="text-sm">{text}</p>
+        <p className="text-sm leading-snug text-[#4d4945]">{text}</p>
       </div>
     </div>
   );
 }
 
 function Decor() {
-  return null;
+  return (
+    <>
+      <div className="pointer-events-none absolute -left-28 -top-28 h-72 w-72 rounded-full bg-[#cf3a33] opacity-90" />
+      <div className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-[#cf3a33] opacity-90" />
+      <div className="pointer-events-none absolute bottom-[-150px] left-[-120px] h-80 w-[540px] rounded-[50%] bg-[#cf3a33] opacity-90" />
+      <div className="pointer-events-none absolute bottom-[-170px] right-[-130px] h-80 w-[580px] rounded-[50%] bg-[#6c8f52] opacity-90" />
+      <div className="pointer-events-none absolute bottom-[-105px] left-[34%] hidden h-52 w-[600px] rounded-[50%] bg-[#eeb0ad]/60 md:block" />
+      <div className="pointer-events-none absolute bottom-[-125px] right-[20%] hidden h-44 w-[430px] rounded-[50%] bg-[#b6cf75]/55 md:block" />
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+      `}</style>
+    </>
+  );
 }

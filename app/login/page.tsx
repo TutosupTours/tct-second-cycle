@@ -22,7 +22,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setRole(params.get("role") || "student");
+    const r = params.get("role") || "student";
+
+    if (["br", "student"].includes(r)) {
+      setRole(r);
+    } else {
+      setRole("coming");
+    }
   }, []);
 
   async function handleBRLogin() {
@@ -111,7 +117,7 @@ export default function LoginPage() {
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </>
-        ) : (
+        ) : role === "student" ? (
           <>
             <h1 className="text-3xl font-bold text-[#2f2f2f]">
               Connexion étudiant
@@ -148,6 +154,31 @@ export default function LoginPage() {
             >
               {loading ? "Connexion..." : "Se connecter"}
             </button>
+
+            <button
+              type="button"
+              onClick={() => setMessage("Le reset code sera ajouté à l’étape suivante.")}
+              className="mt-4 text-sm font-semibold underline text-[#6a8f4f]"
+            >
+              Code oublié ?
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-3xl font-bold text-[#2f2f2f]">
+              Bientôt disponible
+            </h1>
+
+            <p className="mt-4 text-sm text-[#666]">
+              Cet espace sera disponible prochainement.
+            </p>
+
+            <a
+              href="/"
+              className="mt-6 inline-block rounded-2xl bg-[#7c9c56] px-6 py-3 text-white"
+            >
+              Retour accueil
+            </a>
           </>
         )}
 
