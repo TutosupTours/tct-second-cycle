@@ -1,147 +1,63 @@
 "use client";
 
-export const dynamic = "force-dynamic";
+import { useState } from "react";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
-function getRoleLabel(role: string | null) {
-  if (role === "admin") return "Admin";
-  if (role === "br") return "BR";
-  if (role === "examinateur") return "Examinateur";
-  if (role === "etudiant") return "Étudiant";
-  if (role === "faculty") return "Faculté";
-  return "Plateforme";
-}
-
-function normalizeRoleParam(role: string | null) {
-  if (role === "admin") return "admin";
-  if (role === "br") return "br";
-  if (role === "examinateur") return "examiner";
-  if (role === "etudiant") return "student";
-  if (role === "faculty") return "faculty";
-  return null;
-}
-
-function getRedirectPath(role: string | null) {
-  if (role === "admin") return "/admin";
-  if (role === "br") return "/br";
-  if (role === "examiner") return "/examinateur";
-  if (role === "student") return "/etudiant";
-  if (role === "faculty") return "/faculty";
-  return "/";
-}
-
-function getColor(role: string | null) {
-  if (role === "admin") return "#cf332b";
-  if (role === "br") return "#668b4e";
-  if (role === "examinateur") return "#efc24d";
-  if (role === "etudiant") return "#ef9faa";
-  if (role === "faculty") return "#243b63";
-  return "#668b4e";
-}
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function LoginPage() {
-  const [roleParam, setRoleParam] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginId, setLoginId] = useState("");
+  const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setRoleParam(params.get("role"));
-  }, []);
 
   async function handleLogin() {
-    setLoading(true);
-    setMessage("");
-
-    const { data: loginData, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/student-login`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login_id: loginId,
+        pin,
+      }),
     });
 
-    if (error || !loginData.user) {
-      setMessage("Erreur de connexion. Vérifie ton email et ton mot de passe.");
-      setLoading(false);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMessage(data.error);
       return;
     }
 
-    // 🔥 appel sécurisé sans RLS bug
-    const { data: profile, error: profileError } = await supabase.rpc(
-      "get_current_profile"
-    );
-
-    if (profileError || !profile) {
-      console.error("Erreur profil:", profileError);
-      setMessage("Profil introuvable. Contacte l’administrateur.");
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-
-    const expectedRole = normalizeRoleParam(roleParam);
-
-    if (expectedRole && profile.role !== expectedRole) {
-      setMessage("Ce compte n’a pas accès à cet espace.");
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = getRedirectPath(profile.role);
+    setMessage("Connexion réussie !");
   }
 
-  const color = getColor(roleParam);
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#fbf1df] px-4 text-[#2c2f4a]">
-      <div className="w-full max-w-md rounded-[30px] bg-white p-8 shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
-        <h1 className="text-4xl font-bold" style={{ color }}>
-          Connexion {getRoleLabel(roleParam)}
-        </h1>
+    <main className="flex items-center justify-center min-h-screen bg-[#f5f0e5]">
+      <div className="bg-white p-6 rounded-xl text-center">
+        <h1 className="text-xl font-bold mb-4">Connexion étudiant</h1>
 
-        <p className="mt-3 text-[#6f665e]">
-          Accède à ton espace Second Cycle TCT.
-        </p>
+        <input
+          placeholder="Identifiant"
+          value={loginId}
+          onChange={(e) => setLoginId(e.target.value)}
+          className="border p-2 mb-3"
+        />
 
-        <div className="mt-7 space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none placeholder:text-[#9a8f85]"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <input
+          placeholder="Code 4 chiffres"
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          className="border p-2 mb-3"
+        />
 
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            className="w-full rounded-2xl border border-[#e8ded2] bg-white px-4 py-4 text-[#2c2f4a] outline-none placeholder:text-[#9a8f85]"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-
-        {message && (
-          <p className="mt-4 text-sm font-medium text-red-600">{message}</p>
-        )}
-
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="mt-6 w-full rounded-2xl px-6 py-4 text-lg font-semibold text-white disabled:opacity-50"
-          style={{ backgroundColor: color }}
-        >
-          {loading ? "Connexion..." : "Se connecter"}
+        <button onClick={handleLogin} className="bg-green-600 text-white px-4 py-2 rounded">
+          Se connecter
         </button>
 
-        <div className="mt-6 text-center">
-          <a href="/" className="text-sm font-medium text-[#2c2f4a] underline">
-            Retour accueil
-          </a>
-        </div>
+        <p className="mt-3">{message}</p>
       </div>
     </main>
   );
