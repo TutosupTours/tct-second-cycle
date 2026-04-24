@@ -19,30 +19,10 @@ const roles = [
 ];
 
 const missions = [
-  {
-    icon: CalendarDays,
-    color: "#df7f7a",
-    title: "Sessions & Inscriptions",
-    text: "Consultez les sessions disponibles et inscrivez-vous facilement.",
-  },
-  {
-    icon: Users,
-    color: "#8eab60",
-    title: "Évaluations",
-    text: "Suivez vos évaluations et vos progrès.",
-  },
-  {
-    icon: TrendingUp,
-    color: "#efaaa5",
-    title: "Suivi personnalisé",
-    text: "Retrouvez votre parcours et vos résultats.",
-  },
-  {
-    icon: MessageCircle,
-    color: "#9db965",
-    title: "Accompagnement",
-    text: "Accédez aux ressources et conseils.",
-  },
+  { icon: CalendarDays, color: "#df7f7a", title: "Sessions & Inscriptions", text: "Consultez les sessions disponibles et inscrivez-vous facilement." },
+  { icon: Users, color: "#8eab60", title: "Évaluations", text: "Suivez vos évaluations et vos progrès." },
+  { icon: TrendingUp, color: "#efaaa5", title: "Suivi personnalisé", text: "Retrouvez votre parcours et vos résultats." },
+  { icon: MessageCircle, color: "#9db965", title: "Accompagnement", text: "Accédez aux ressources et conseils." },
 ];
 
 export default function HomePage() {
@@ -50,8 +30,15 @@ export default function HomePage() {
     <main className="relative min-h-screen overflow-hidden bg-[#fbf1df] text-[#2c2f4a]">
       <Decor />
 
+      <Link
+        href="/signup"
+        className="absolute left-6 top-6 z-30 rounded-full bg-[#cf332b] px-5 py-3 text-sm font-bold text-white shadow-lg animate-pulse"
+      >
+        Demande d’inscription
+      </Link>
+
       <section className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-10 px-6 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
-        <div className="flex flex-col">
+        <div className="flex flex-col pt-12 lg:pt-0">
           <div className="mb-4 flex justify-center lg:justify-start">
             <div className="flex h-24 w-24 animate-[float_5s_ease-in-out_infinite] items-center justify-center rounded-full bg-white shadow-xl">
               <img src="/logo-tct.png" alt="Logo TCT" className="h-16 w-16 object-contain" />
@@ -108,7 +95,7 @@ export default function HomePage() {
                 <Users className="h-8 w-8" />
               </div>
               <div>
-                <h2 className="text-3xl font-semibold">Connexion</h2>
+                <h2 className="text-3xl font-semibold text-[#2c2f4a]">Connexion</h2>
                 <p className="text-sm text-[#8b8177]">Choisissez votre espace</p>
               </div>
             </div>
@@ -159,7 +146,10 @@ export default function HomePage() {
             </div>
 
             <div className="mt-7 text-center">
-              <Link href="/activation" className="text-sm font-medium text-[#668b4e] underline">
+              <Link
+                href="/activation"
+                className="inline-block rounded-full bg-[#edf5e6] px-4 py-2 text-sm font-bold text-[#4f7338] underline"
+              >
                 Activer mon compte étudiant
               </Link>
             </div>
