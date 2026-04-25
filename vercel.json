@@ -1,0 +1,21 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://hlzrzzgoryxkioulaiye.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsenJ6emdvcnl4a2lvdWxhaXllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTM2NzAsImV4cCI6MjA5MjUyOTY3MH0.hKmxqJnv-zUvDy7x8MK_8qganPrJMX0lI13sNb0ZVKI",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsenJ6emdvcnl4a2lvdWxhaXllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzY5NTM2NzAsImV4cCI6MjA5MjUyOTY3MH0.9N9M9XHIJUM0imRU53sIdNUH0Zhx1L1zL3nZgRljB5w"
+  }
+}
