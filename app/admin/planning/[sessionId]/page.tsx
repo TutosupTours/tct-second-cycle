@@ -40,7 +40,7 @@ type Staff = {
 
 export default function PlanningPage() {
   const params = useParams();
-  const sessionId = params.sessionId as string;
+  const sessionId = params?.sessionId as string;
 
   const [stations, setStations] = useState<Station[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { handleApiError } from '@/lib/errors';
 import type { SessionRegistration } from '@/lib/types';
 
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('student_id');
     const status = searchParams.get('status');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('session_registrations')
       .select(`
         *,
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if student is already registered for this session
-    const { data: existingRegistration } = await supabase
+    const { data: existingRegistration } = await supabaseAdmin
       .from('session_registrations')
       .select('id')
       .eq('session_id', session_id)
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check session capacity
-    const { data: session } = await supabase
+    const { data: session } = await supabaseAdmin
       .from('ecos_sessions')
       .select('capacity')
       .eq('id', session_id)
       .single();
 
-    const { count: registrationCount } = await supabase
+    const { count: registrationCount } = await supabaseAdmin
       .from('session_registrations')
       .select('*', { count: 'exact', head: true })
       .eq('session_id', session_id)
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('session_registrations')
       .insert({
         session_id,
@@ -142,7 +142,7 @@ export async function PATCH(request: NextRequest) {
       updateData.approved_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('session_registrations')
       .update(updateData)
       .eq('id', id)

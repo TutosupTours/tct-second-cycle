@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { handleApiError, sanitizeInput } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const active = searchParams.get('active');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('students')
       .select('*')
       .order('nom');
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('students')
       .insert({
         login_id: sanitizeInput(login_id).toLowerCase(),
@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('students')
       .update(sanitizedUpdates)
       .eq('login_id', login_id)

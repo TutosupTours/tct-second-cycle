@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { handleApiError, sanitizeInput } from '@/lib/errors';
 import type { ECOSSession } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('API called - checking env vars');
+    console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'DEFINED' : 'UNDEFINED');
+    console.log('SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'DEFINED' : 'UNDEFINED');
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const promotion = searchParams.get('promotion');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let query = supabase
+    console.log('Query params:', { status, promotion, page, limit });
+
+    let query = supabaseAdmin
       .from('ecos_sessions')
       .select('*', { count: 'exact' })
       .order('session_date', { ascending: false });
+
+    console.log('Query created');
 
     if (status) {
       query = query.eq('status', status);
@@ -28,12 +36,16 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1);
 
+    console.log('Executing query...');
     const { data, error, count } = await query;
+
+    console.log('Query executed, error:', error);
 
     if (error) {
       throw handleApiError(error);
     }
 
+    console.log('Returning data, count:', count);
     return NextResponse.json({
       data: data as ECOSSession[],
       pagination: {
@@ -44,6 +56,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
+    console.error('Caught error:', error);
     const appError = handleApiError(error);
     return NextResponse.json(
       { error: appError.message },
@@ -81,7 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('ecos_sessions')
       .insert({
         title: sanitizeInput(title),

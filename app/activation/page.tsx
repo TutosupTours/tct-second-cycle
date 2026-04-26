@@ -3,20 +3,24 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function ActivationPage() {
+  const router = useRouter();
   const [token, setToken] = useState("");
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
   const [loginId, setLoginId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountType, setAccountType] = useState<string>("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token");
+    const type = params.get("type") || "student";
 
     if (!t) {
       setMessage("Lien invalide : token manquant.");
@@ -24,6 +28,7 @@ export default function ActivationPage() {
     }
 
     setToken(t);
+    setAccountType(type);
   }, []);
 
   async function handleActivation() {
@@ -36,14 +41,15 @@ export default function ActivationPage() {
     }
 
     if (!/^[0-9]{4}$/.test(pin)) {
-      setMessage("Le code doit contenir exactement 4 chiffres.");
+      setMessage("Le code PIN doit contenir exactement 4 chiffres.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/activate-student`, {
+      const endpoint = accountType === 'student' ? 'activate-student' : 'activate-staff';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -105,7 +111,7 @@ export default function ActivationPage() {
         ) : (
           <>
             <p className="mt-4 text-sm text-[#666]">
-              Ton identifiant étudiant est :
+              Votre identifiant de connexion est :
             </p>
 
             <p className="mt-3 rounded-2xl bg-[#edf5e6] px-4 py-3 text-xl font-bold text-[#2f4d1f]">
@@ -113,7 +119,7 @@ export default function ActivationPage() {
             </p>
 
             <a
-              href="/login?role=student"
+              href="/login"
               className="mt-6 inline-block rounded-2xl bg-[#7c9c56] px-6 py-3 font-semibold text-white"
             >
               Se connecter

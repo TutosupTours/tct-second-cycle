@@ -137,19 +137,11 @@ export default function HomePage() {
 
             <div className="mt-7 flex flex-col items-center gap-3 text-center">
               <Link
-                href="/activation"
-                className="rounded-full border border-[#cfe3bf] bg-[#edf5e6] px-5 py-2 text-sm font-bold shadow-sm transition hover:scale-105 hover:shadow-md"
-                style={{ color: "#2f4d1f" }}
-              >
-                Activer mon compte étudiant
-              </Link>
-
-              <Link
                 href="/signup"
                 className="rounded-full px-5 py-3 text-sm font-bold shadow-lg animate-pulse transition hover:scale-105 hover:shadow-xl"
                 style={{ backgroundColor: "#cf332b", color: "#ffffff" }}
               >
-                Demande d’inscription
+                Demande d'inscription
               </Link>
             </div>
           </div>
