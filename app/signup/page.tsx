@@ -1,116 +1,87 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { FormField, Form } from "@/components/Form";
 import Alert from "@/components/Alert";
-import { validateEmail, sanitizeInput } from "@/lib/errors";
+import { sanitizeInput, validateEmail } from "@/lib/errors";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-type AccountType = 'student' | 'examiner' | 'br' | 'faculty' | 'admin';
+type AccountType = "student" | "examiner" | "br" | "faculty" | "admin";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("student");
+  const [niveauEtudes, setNiveauEtudes] = useState("");
+  const [formule, setFormule] = useState("");
+  const [examSession, setExamSession] = useState("");
   const [message, setMessage] = useState("");
-  const [alertType, setAlertType] = useState<'success' | 'error'>('error');
-  const [registrationData, setRegistrationData] = useState<any>(null);
-  const [accountType, setAccountType] = useState<AccountType>('student');
+  const [alertType, setAlertType] = useState<"success" | "error">("error");
+  const [loading, setLoading] = useState(false);
 
-  const accountTypeOptions = [
-    { value: 'student', label: 'Étudiant' },
-    { value: 'examiner', label: 'Examinateur' },
-    { value: 'br', label: 'Bureau Régional (BR)' },
-    { value: 'faculty', label: 'Faculté' },
-    { value: 'admin', label: 'Administrateur' }
-  ];
+  async function handleSubmit(data: Record<string, string>) {
+    setMessage("");
 
-  const niveauOptions = [
-    { value: 'L1', label: 'Licence 1' },
-    { value: 'L2', label: 'Licence 2' },
-    { value: 'L3', label: 'Licence 3' },
-    { value: 'M1', label: 'Master 1' },
-    { value: 'M2', label: 'Master 2' },
-    { value: 'D1', label: 'Doctorat 1' },
-    { value: 'D2', label: 'Doctorat 2' },
-    { value: 'D3', label: 'Doctorat 3' }
-  ];
-
-  const handleAccountTypeChange = (value: string) => {
-    setAccountType(value as AccountType);
-  };
-
-  const handleSubmit = async (data: Record<string, string>) => {
-    // Validation de base
     if (!data.first_name || !data.last_name || !data.email) {
-      setMessage("Le prénom, nom et email sont obligatoires.");
-      setAlertType('error');
+      setMessage("Prénom, nom et email sont obligatoires.");
+      setAlertType("error");
       return;
     }
 
     if (!validateEmail(data.email)) {
       setMessage("Adresse email invalide.");
-      setAlertType('error');
+      setAlertType("error");
       return;
     }
 
-    // Validation spécifique selon le type de compte
-    if (accountType === 'student' && !data.niveau) {
-      setMessage("Le niveau est obligatoire pour les étudiants.");
-      setAlertType('error');
+    if (accountType === "student" && (!niveauEtudes || !formule)) {
+      setMessage("Merci de choisir le niveau d'études et la formule.");
+      setAlertType("error");
       return;
     }
 
-    if (accountType === 'examiner' && !data.category) {
-      setMessage("La catégorie est obligatoire pour les examinateurs.");
-      setAlertType('error');
-      return;
-    }
-
-    if (accountType === 'br' && !data.region) {
-      setMessage("La région est obligatoire pour le Bureau Régional.");
-      setAlertType('error');
-      return;
-    }
-
-    if (accountType === 'faculty' && !data.department) {
-      setMessage("Le département est obligatoire pour la faculté.");
-      setAlertType('error');
+    if (accountType === "examiner" && !examSession) {
+      setMessage("Merci de choisir le type de session.");
+      setAlertType("error");
       return;
     }
 
     setLoading(true);
-    setMessage("");
 
     try {
-      const endpoint = accountType === 'student' ? 'student-registration' : 'staff-registration';
-      const payload = {
+      const endpoint =
+        accountType === "student" ? "student-registration" : "staff-registration";
+
+      const payload: any = {
         account_type: accountType,
         first_name: sanitizeInput(data.first_name),
         last_name: sanitizeInput(data.last_name),
         email: sanitizeInput(data.email).toLowerCase(),
-        phone: data.phone ? sanitizeInput(data.phone) : undefined,
-        ...(accountType === 'student' && {
-          niveau: sanitizeInput(data.niveau),
-        }),
-        ...(accountType === 'examiner' && {
-          category: sanitizeInput(data.category),
-          specialty: data.specialty ? sanitizeInput(data.specialty) : undefined,
-          grade: data.grade ? sanitizeInput(data.grade) : undefined,
-        }),
-        ...(accountType === 'br' && {
-          region: sanitizeInput(data.region),
-        }),
-        ...(accountType === 'faculty' && {
-          department: sanitizeInput(data.department),
-          position: data.position ? sanitizeInput(data.position) : undefined,
-        }),
+        phone: data.phone ? sanitizeInput(data.phone) : null,
       };
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
+      if (accountType === "student") {
+        payload.niveau = niveauEtudes;
+        payload.promotion = niveauEtudes;
+        payload.formule = formule;
+      }
+
+      if (accountType === "br") {
+        payload.role_br = data.role_br;
+        payload.region = data.role_br;
+      }
+
+      if (accountType === "examiner") {
+        payload.session_type = examSession;
+        payload.niveau = data.niveau_examinateur;
+        payload.category = data.category || null;
+      }
+
+      if (accountType === "faculty") {
+        payload.position = "Faculté";
+      }
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -120,198 +91,212 @@ export default function SignupPage() {
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
+      const result = await res.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || "Erreur lors de l'inscription");
+      if (!res.ok) {
+        throw new Error(result.error || "Erreur lors de l'inscription.");
       }
 
-      setRegistrationData(result);
-      setMessage(`Demande d'inscription envoyée avec succès ! Un email d'activation a été envoyé à ${data.email}.`);
-      setAlertType('success');
+      setMessage("Demande d'inscription envoyée avec succès.");
+      setAlertType("success");
     } catch (error: any) {
-      setMessage(error.message || "Erreur lors de l'inscription");
-      setAlertType('error');
+      setMessage(error.message || "Erreur lors de l'inscription.");
+      setAlertType("error");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#fbf1df] p-4">
-      <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow-lg">
+      <div className="w-full max-w-lg space-y-6 rounded-[28px] bg-white p-8 shadow-lg">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#2c2f4a]">
             Demande d'inscription ECOS
           </h1>
-          <p className="mt-2 text-gray-600">
-            Créez votre compte pour accéder à la plateforme ECOS
+          <p className="mt-2 text-sm text-gray-600">
+            Sélectionnez votre profil puis complétez les informations demandées.
           </p>
         </div>
 
-        {message && (
+        {message ? (
           <Alert
             type={alertType}
             message={message}
             onClose={() => setMessage("")}
           />
-        )}
+        ) : null}
 
-        {registrationData ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-green-50 p-4">
-              <h3 className="font-semibold text-green-800">Demande envoyée avec succès !</h3>
-              <p className="mt-2 text-sm text-green-700">
-                Un email d'activation a été envoyé à votre adresse email.
-                Cliquez sur le lien dans l'email pour activer votre compte et créer votre PIN.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                href="/login"
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
-              >
-                Aller à la connexion
-              </Link>
-              <button
-                onClick={() => setRegistrationData(null)}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-              >
-                Nouvelle demande
-              </button>
-            </div>
-          </div>
-        ) : (
-          <Form onSubmit={handleSubmit} submitLabel="Envoyer la demande" loading={loading}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type de compte *
-              </label>
-              <select
-                value={accountType}
-                onChange={(e) => handleAccountTypeChange(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                required
-              >
-                {accountTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <FormField
-              name="first_name"
-              label="Prénom"
-              placeholder="Votre prénom"
+        <Form onSubmit={handleSubmit} submitLabel="Envoyer la demande" loading={loading}>
+          <label className="block text-sm font-medium text-gray-700">
+            Type de compte *
+            <select
+              value={accountType}
+              onChange={(e) => {
+                setAccountType(e.target.value as AccountType);
+                setNiveauEtudes("");
+                setFormule("");
+                setExamSession("");
+              }}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
               required
-            />
+            >
+              <option value="student">Étudiant</option>
+              <option value="examiner">Examinateur</option>
+              <option value="br">BR - Bureau Restreint</option>
+              <option value="faculty">Faculté</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </label>
 
-            <FormField
-              name="last_name"
-              label="Nom"
-              placeholder="Votre nom"
-              required
-            />
+          <FormField name="first_name" label="Prénom" required />
+          <FormField name="last_name" label="Nom" required />
+          <FormField name="email" label="Email" type="email" required />
+          <FormField name="phone" label="Téléphone" placeholder="06 12 34 56 78" />
 
-            <FormField
-              name="email"
-              label="Email"
-              type="email"
-              placeholder="votre.email@universite.fr"
-              required
-            />
-
-            <FormField
-              name="phone"
-              label="Téléphone"
-              placeholder="06 12 34 56 78"
-            />
-
-            {accountType === 'student' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Niveau *
-                </label>
+          {accountType === "student" && (
+            <>
+              <label className="block text-sm font-medium text-gray-700">
+                Niveau d'études *
                 <select
-                  name="niveau"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                  value={niveauEtudes}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNiveauEtudes(value);
+
+                    if (value === "D2" || value === "D3") {
+                      setFormule("ecos_proceduraux");
+                    } else {
+                      setFormule("");
+                    }
+                  }}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                   required
                 >
-                  {niveauOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <option value="">Choisir le niveau</option>
+                  <option value="D2">D2</option>
+                  <option value="D3">D3</option>
+                  <option value="D4">D4</option>
                 </select>
-              </div>
-            )}
+              </label>
 
-            {accountType === 'examiner' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Catégorie *
+              <label className="block text-sm font-medium text-gray-700">
+                Formule choisie *
+                <select
+                  value={formule}
+                  onChange={(e) => setFormule(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                  required
+                >
+                  <option value="">Choisir la formule</option>
+
+                  {(niveauEtudes === "D2" || niveauEtudes === "D3") && (
+                    <option value="ecos_proceduraux">ECOS procéduraux</option>
+                  )}
+
+                  {niveauEtudes === "D4" && (
+                    <>
+                      <option value="ecos_proceduraux">ECOS procéduraux</option>
+                      <option value="projet_esee">Projet ESEE</option>
+                    </>
+                  )}
+                </select>
+              </label>
+            </>
+          )}
+
+          {accountType === "br" && (
+            <label className="block text-sm font-medium text-gray-700">
+              Rôle au Bureau Restreint *
+              <select
+                name="role_br"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                required
+              >
+                <option value="">Choisir le rôle</option>
+                <option value="prez">Prez</option>
+                <option value="sex">Sex</option>
+                <option value="trez">Trez</option>
+              </select>
+            </label>
+          )}
+
+          {accountType === "examiner" && (
+            <>
+              <label className="block text-sm font-medium text-gray-700">
+                Session *
+                <select
+                  value={examSession}
+                  onChange={(e) => setExamSession(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                  required
+                >
+                  <option value="">Choisir la session</option>
+                  <option value="ecos_proceduraux">ECOS procéduraux</option>
+                  <option value="projet_esee">Projet ESEE</option>
+                </select>
+              </label>
+
+              {examSession === "ecos_proceduraux" && (
+                <>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Niveau d'études *
+                    <select
+                      name="niveau_examinateur"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                      required
+                    >
+                      <option value="">Choisir le niveau</option>
+                      <option value="D2">D2</option>
+                      <option value="D4">D4</option>
+                    </select>
                   </label>
+
+                  <label className="block text-sm font-medium text-gray-700">
+                    Catégorie *
+                    <select
+                      name="category"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                      required
+                    >
+                      <option value="">Choisir la catégorie</option>
+                      <option value="moniteur_niveau_1">Moniteur niveau 1</option>
+                      <option value="moniteur_niveau_2">Moniteur niveau 2</option>
+                    </select>
+                  </label>
+                </>
+              )}
+
+              {examSession === "projet_esee" && (
+                <label className="block text-sm font-medium text-gray-700">
+                  Niveau d'études *
                   <select
-                    name="category"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                    name="niveau_examinateur"
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
                     required
                   >
-                    <option value="junior">Junior</option>
-                    <option value="senior">Senior</option>
-                    <option value="expert">Expert</option>
+                    <option value="">Choisir le niveau</option>
+                    <option value="P2">P2</option>
+                    <option value="D1">D1</option>
+                    <option value="D2">D2</option>
                   </select>
-                </div>
-                <FormField
-                  name="specialty"
-                  label="Spécialité"
-                  placeholder="Votre spécialité"
-                />
-                <FormField
-                  name="grade"
-                  label="Grade"
-                  placeholder="Votre grade"
-                />
-              </>
-            )}
+                </label>
+              )}
+            </>
+          )}
 
-            {accountType === 'br' && (
-              <FormField
-                name="region"
-                label="Région"
-                placeholder="Votre région"
-                required
-              />
-            )}
+          {accountType === "faculty" && (
+            <div className="rounded-xl bg-[#faf7f0] p-4 text-sm text-gray-600">
+              Aucun département demandé pour la faculté.
+            </div>
+          )}
 
-            {accountType === 'faculty' && (
-              <>
-                <FormField
-                  name="department"
-                  label="Département"
-                  placeholder="Votre département"
-                  required
-                />
-                <FormField
-                  name="position"
-                  label="Poste"
-                  placeholder="Votre poste"
-                />
-              </>
-            )}
-          </Form>
-        )}
-
-        <div className="text-center">
-          <Link
-            href="/login"
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            Déjà un compte ? Se connecter
-          </Link>
-        </div>
+          {accountType === "admin" && (
+            <div className="rounded-xl bg-[#faf7f0] p-4 text-sm text-gray-600">
+              Compte administrateur.
+            </div>
+          )}
+        </Form>
       </div>
     </main>
   );
