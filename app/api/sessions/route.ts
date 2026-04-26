@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     console.log('API called - checking env vars');
     console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'DEFINED' : 'UNDEFINED');
     console.log('SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'DEFINED' : 'UNDEFINED');
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'DEFINED' : 'UNDEFINED');
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
