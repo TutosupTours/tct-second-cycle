@@ -49,9 +49,6 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const endpoint =
-        accountType === "student" ? "student-registration" : "staff-registration";
-
       const payload: any = {
         account_type: accountType,
         first_name: sanitizeInput(data.first_name),
@@ -62,13 +59,11 @@ export default function SignupPage() {
 
       if (accountType === "student") {
         payload.niveau = niveauEtudes;
-        payload.promotion = niveauEtudes;
         payload.formule = formule;
       }
 
       if (accountType === "br") {
         payload.role_br = data.role_br;
-        payload.region = data.role_br;
       }
 
       if (accountType === "examiner") {
@@ -81,23 +76,26 @@ export default function SignupPage() {
         payload.position = "Faculté";
       }
 
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          apikey: SUPABASE_ANON_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/submit-registration-request`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const result = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || !result.success) {
         throw new Error(result.error || "Erreur lors de l'inscription.");
       }
 
-      setMessage("Demande d'inscription envoyée avec succès.");
+      setMessage("Demande d'inscription envoyée avec succès. Elle sera vérifiée par le BR.");
       setAlertType("success");
     } catch (error: any) {
       setMessage(error.message || "Erreur lors de l'inscription.");
